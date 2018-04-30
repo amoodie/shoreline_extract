@@ -3,31 +3,34 @@ function [] = build_shorelineset()
     clear variables; 
     close all;
 
-    cd /media/andrew/moodie3/
-    directory = 'autofiles';
+    % directory of the data folder (relative or absolute path to the folder)
+    % alternatively use cd <path to location> to execute elsewhere
+    directory = '../data';
 
-    folders = strsplit(ls(strcat('./',directory,'/')));
+    % create the list of folders to loop through
+    folders = strsplit( ls(strcat('./', directory, '/')) );
     countfolders = length(folders)-1;
     
-    names = cell(countfolders,1);
-    dates = cell(countfolders,1);
-    clouds = NaN(countfolders,1);
-    outputs = NaN(countfolders,8);
+    % initialize some lists
+    names = cell(countfolders,1);       % name of images
+    dates = cell(countfolders,1);       % dates of images
+    clouds = NaN(countfolders,1);       % cloud % of images
+    outputs = NaN(countfolders,8);      % output dataset
     
-    deltaULcoord = [633497 4236964];
-    deltacropDim = [3975 3790];
-    deltaLRcoord = [713380 4162227];
-    deltaLLcoord = [deltaULcoord(1) deltaLRcoord(2)];
+    deltaULcoord = [633497, 4236964]; % apex of the delta for cropping
+    deltacropDim = [3975, 3790];
+    deltaLRcoord = [713380, 4162227];
+    deltaLLcoord = [deltaULcoord(1), deltaLRcoord(2)];
 
-%     fig = figure();
-    
     [sortidx] = get_sortorder(folders, countfolders, directory);
     folders_sort = folders(sortidx);
     
-    for i = 1:countfolders;
-        i
+    for i = 1:countfolders
+        disp('operating on image folder: ', i)
+        
         clear shoreline
-        imagefolder = strcat(directory, '/', folders_sort(i), '/', folders_sort(i));
+        
+        imagefolder = strcat(directory, '/', folders_sort(i), '/', folders_sort(i));        % concatenate to build this_folder info
         fidmetadata = fopen(char(strcat('./', imagefolder, '_MTL.txt')));
         [meta] = get_metadata(fidmetadata);
         meta.name = folders_sort(i);
@@ -44,10 +47,10 @@ function [] = build_shorelineset()
         [fig] = make_plot(thresh_crop, shoreline_idx, i, meta);
         savename = sprintf('./fig_output/fig%03d.png', i);
         pause(0.2)
-        print(fig, savename,'-dpng','-r200','-opengl') % save file
+        print(fig, savename, '-dpng', '-r200', '-opengl') % save file
         close(fig)
         
-        outputname = strcat('/home/andrew/Dropbox/yellow_river/data/shorelines/auto_shoreline/shoreline_',datestr(meta.date,'YYYY-mm-dd'),'.csv');
+        outputname = strcat('/home/andrew/Dropbox/yellow_river/data/shorelines/auto_shoreline/shoreline_', datestr(meta.date, 'YYYY-mm-dd'), '.csv');
         fid = fopen(outputname, 'w');
         fprintf(fid, 'X, Y\n');
         fclose(fid);
@@ -80,10 +83,9 @@ end
 
 function [shoreline, thresh_crop] = process(thresh_image,  ULcoord, cropULcoord, cropLRcoord, resolution)
     [cropDim] =  get_cropDim(cropULcoord, cropLRcoord, resolution);
-    [thresh_crop_raw] = crop2(thresh_image, ULcoord, cropULcoord, cropDim, resolution);
+    [thresh_crop_raw] = crop_image(thresh_image, ULcoord, cropULcoord, cropDim, resolution);
     thresh_crop = imadjust(thresh_crop_raw, stretchlim(thresh_crop_raw), [0 1], 1);
-    thresh_guess = 0.3;
-    [thresh] = get_threshold2(thresh_crop, thresh_guess);
+    [thresh] = get_threshold(thresh_crop);
     [crop_close, crop_edge] = find_shoreline(thresh_crop, thresh);
     [row, col] = find(crop_edge);
     shoreline = horzcat(col, row);
@@ -95,7 +97,7 @@ function [cropDim] = get_cropDim(ULcoord, LRcoord, res)
     cropDim = [xDim yDim];
 end
 
-function [crop_img] = crop2(image, ULcoord, cropULcoord, cropDim, resolution)
+function [crop_img] = crop_image(image, ULcoord, cropULcoord, cropDim, resolution)
     ULidx = [(cropULcoord(1)-ULcoord(1)), (ULcoord(2)-cropULcoord(2))] ./ resolution; % WILL NOT WORK BECAUSE SPACING CHANGES???
     crop_img = imcrop(image, [ULidx(1) ULidx(2) cropDim(1) cropDim(2)]);
 end
@@ -202,33 +204,9 @@ function [meta] = get_metadata(fidmetadata)
     meta.res = resval;
 end
 
-function [thresh] = get_threshold(img, guess)
-    img=im2double(img);
-    img_long = reshape(img, size(img,1)*size(img,2), 1);
-    [Hcount, Hbin] = histcounts(img_long, 500);
-    dirs = [-1 1];
-    for dir = 1:2
-        interval = dirs(dir);
-        bin_idx = find(Hbin >= guess, 1);
-        lowest = Hcount(bin_idx);
-        while 1
-            bin_idx = bin_idx + interval;
-            bin_val = Hcount(bin_idx);
-            if bin_val < lowest
-                lowest = bin_val;
-            else
-                break;
-            end 
-        end
-        solutions(dir) = bin_idx;
-    end
-    best_solution = min(solutions);
-    thresh = Hbin(best_solution);
-end
-
-function [thresh] = get_threshold2(img, guess)
-    img=im2double(img);
-    img_long = reshape(img, size(img,1)*size(img,2), 1);
+function [thresh] = get_threshold(img)
+    img = im2double(img);
+    img_long = reshape(img, size(img,1) * size(img,2), 1);
     [Hcount, Hbin] = histcounts(img_long, 40);
     dx = Hbin(2) - Hbin(1);
     dcdx = (Hcount(2:end) - Hcount(1:end-1)) ./ dx;
@@ -239,23 +217,4 @@ function [thresh] = get_threshold2(img, guess)
     yint = maxy - (m * (maxx));
     xint = (-1*yint)/m;
     thresh = xint;
-%     soln = 
-%     thresh = Hbin(best_solution);
 end
-
-% 
-% function [thresh] = get_threshold(img, guess)
-%     img=im2double(img);
-%     while 1
-%         mean_high = sum(sum( (img>guess).*img ))/length(find(img>guess));
-%         mean_low = sum(sum( (img<=guess).*img ))/length(find(img<=guess));
-%         new_mean = (mean_high+mean_low)/2;
-%         if(new_mean == guess)
-%             break;   
-%         else
-%             guess = new_mean;
-%         end
-%     end
-%     thresh = guess;
-% end
-
