@@ -27,19 +27,16 @@ function [] = build_shorelineset()
 
     % loop through all the folder first to generate some metadata for sorting
     % sort is important for making a movie
-    [sortidx] = get_sortorder(folders, countfolders, directory);
+    [sortidx, meta_sort] = get_sortorder(folders, countfolders, directory);
     folders_sort = folders(sortidx); % rearange folders into this order for main loop
     
     % main image --> shoreline processing code
     for i = 1:countfolders
-        disp('operating on image folder: ', i)
+        disp( ['operating on image folder: ', num2str(i), ' of ', num2str(countfolders)] )
         
         clear shoreline
         
-        imagefolder = strcat(directory, '/', folders_sort(i), '/', folders_sort(i));        % concatenate to build this_folder info
-        fidmetadata = fopen(char(strcat('./', imagefolder, '_MTL.txt')));
-        [meta] = get_metadata(fidmetadata);
-        meta.name = folders_sort(i);
+        meta = meta_sort{i};
         [bandset] = set_bandset(meta.mission); % return bands to use as [thresh, R, G, B]
         
         thresh_img = imread(char(strcat('./', imagefolder, '_B', bandset(1), '.TIF')));
@@ -67,7 +64,7 @@ function [] = build_shorelineset()
     save('/home/andrew/Dropbox/yellow_river/data/shorelines/deltaLLcoord.mat', 'deltaLLcoord')
 end
 
-function [sortidx] = get_sortorder(folders, countfolders, directory)
+function [sortidx, meta_sort] = get_sortorder(folders, countfolders, directory)
     % sort the folders for processing in order,
     % this is needed for making a movie while processing if desired
     
@@ -76,14 +73,21 @@ function [sortidx] = get_sortorder(folders, countfolders, directory)
     
     % loop through to get metadata
     for i = 1:countfolders
-        imagefolder = fullfile(directory, folders(i)); % concatenate to build this_folder info
+        % concatenate to build the present folder and metadata file info
+        imagefolder = fullfile(directory, folders(i)); 
         imagemetafile = fullfile(imagefolder, strcat(folders(i), '_MTL.txt'));
         fidmetadata = fopen(char(imagemetafile)); % fid of metadata file
-        [meta] = get_metadata(fidmetadata);
-        dates(i) = meta.date;
+        
+        % process the file to extract the metadata
+        [meta{i, 1}] = get_metadata(fidmetadata);
+        
+        % date is what we're after for sorting
+        dates(i) = meta{i}.date;
     end
     
+    % perform the sort
     [~, sortidx] = sort(dates);
+    [meta_sort] = meta(sortidx);
 end
 
 function  [fig] = make_plot(thresh_img, shoreline, i, meta)
@@ -186,38 +190,47 @@ function [meta] = get_metadata(fidmetadata)
     date.idx = find(~cellfun(@isempty,strfind(metadata{1,1}, 'DATE_ACQUIRED')) == 1);
     date.str = metadata{1,1}(date.idx);
     date.splt = strsplit(char(date.str),'=');
-    dateval = datenum(date.splt(2));
-    meta.date = dateval;
+    date.val = datenum(date.splt(2));
+    meta.date = date.val;
     
     clouds.idx = find(~cellfun(@isempty,strfind(metadata{1,1}, 'CLOUD_COVER')) == 1, 1);
     clouds.str = metadata{1,1}(clouds.idx);
     clouds.splt = strsplit(char(clouds.str),'=');
-    cloudsval = str2num(char(clouds.splt(2)));
-    meta.clouds = cloudsval; 
+    clouds.val = str2num(char(clouds.splt(2)));
+    meta.clouds = clouds.val; 
     
     ULXcoord.idx = find(~cellfun(@isempty,strfind(metadata{1,1}, 'CORNER_UL_PROJECTION_X_PRODUCT')) == 1);
     ULXcoord.str = metadata{1,1}(ULXcoord.idx);
     ULXcoord.splt = strsplit(char(ULXcoord.str),'=');
-    ULXcoordval = str2num(char(ULXcoord.splt(2)));
+    ULXcoord.val = str2num(char(ULXcoord.splt(2)));
     ULYcoord.idx = find(~cellfun(@isempty,strfind(metadata{1,1}, 'CORNER_UL_PROJECTION_Y_PRODUCT')) == 1);
     ULYcoord.str = metadata{1,1}(ULYcoord.idx);
     ULYcoord.splt = strsplit(char(ULYcoord.str),'=');
-    ULYcoordval = str2num(char(ULYcoord.splt(2)));
-    ULcoord = [ULXcoordval ULYcoordval];
-    meta.ULcoord = ULcoord;
+    ULYcoord.val = str2num(char(ULYcoord.splt(2)));
+    meta.ULcoord = [ULXcoord.val, ULYcoord.val];
     
     mission.idx = find(~cellfun(@isempty,strfind(metadata{1,1}, 'SPACECRAFT_ID')) == 1);
     mission.str = metadata{1,1}(mission.idx);
     mission.splt = strsplit(char(mission.str),'=');
     mission.name = strrep(mission.splt(2), '"', '');
-    missionval = char(strrep(mission.name, ' ', ''));
-    meta.mission = missionval;
+    mission.val = char(strrep(mission.name, ' ', ''));
+    meta.mission = mission.val;
     
     res.idx = find(~cellfun(@isempty,strfind(metadata{1,1}, 'GRID_CELL_SIZE_REFLECTIVE')) == 1);
     res.str = metadata{1,1}(res.idx);
     res.splt = strsplit(char(res.str),'=');
-    resval = str2num(char(strrep(res.splt(2), ' ', '')));
-    meta.res = resval;
+    res.val = str2double(char(strrep(res.splt(2), ' ', '')));
+    meta.res = res.val;
+    
+    name.idx = find(~cellfun(@isempty,strfind(metadata{1,1}, 'LANDSAT_SCENE_ID')) == 1);
+    name.str = metadata{1,1}(name.idx);
+    name.splt = strsplit(char(name.str),'=');
+    name.name = strrep(name.splt(2), '"', '');
+    name.val = char(strrep(name.name, ' ', ''));
+    meta.name = name.val;
+    
+    % need to pass into here the arguments for the folder path. Could pass name too?
+    % any way to put this crap into function to take a name and datatype and return that?
 end
 
 function [thresh] = get_threshold(img)
