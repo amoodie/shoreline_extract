@@ -117,21 +117,23 @@ function [crop_img] = crop_image(image, ULcoord, cropULcoord, cropDim, resolutio
 end
 
 function [img_close, img_edge] = find_shoreline(img, thresh)
-    img_bw = im2bw(img, thresh); % threshold image
-    img_fill = imfill(img_bw, 'holes'); % fill it from the outside
-    img_rms = ~bwareaopen(~img_fill, 30000); % remove small isolated water-on-land objects
-    img_rms2 = bwareaopen(img_rms, 500); % remove small isolated land-in-water objects %%%%%%%% 2000
-    img_structel = strel('disk', 5); % build structural object (something like a filter) of ('shape', size)
-    img_open = imopen(img_rms2, img_structel); % morphological closure with structure
-    img_structel2 = strel('disk', 50); % build structural object (something like a filter) of ('shape', size)
-    img_close = imclose(img_open, img_structel2); % morphological closure with structure
-    img_rms3 = bwareaopen(img_close, 10000); % remove small isolated land-in-water objects
-    img_pad = padarray(img_rms3, [1 0], 1, 'post'); % add row to end
-    img_pad = padarray(img_pad, [0 1], 1, 'pre'); % add col to front
-    img_fill2 = imfill(img_pad, 'holes'); % fill it from the outside
+    % main shoreline extraction method descibed in Moodie et al.
+
+    img_bw = im2bw(img, thresh);                        % threshold image
+    img_fill = imfill(img_bw, 'holes');                 % fill it from the outside
+    img_rms = ~bwareaopen(~img_fill, 30000);            % remove small isolated water-on-land objects
+    img_rms2 = bwareaopen(img_rms, 500);                % remove small isolated land-in-water objects %%%%%%%% 2000
+    img_structel = strel('disk', 5);                    % build structural object (something like a filter) of ('shape', size)
+    img_open = imopen(img_rms2, img_structel);          % morphological closure with structure
+    img_structel2 = strel('disk', 50);                  % build structural object (something like a filter) of ('shape', size)
+    img_close = imclose(img_open, img_structel2);       % morphological closure with structure
+    img_rms3 = bwareaopen(img_close, 10000);            % remove small isolated land-in-water objects
+    img_pad = padarray(img_rms3, [1 0], 1, 'post');     % add row to end
+    img_pad = padarray(img_pad, [0 1], 1, 'pre');       % add col to front
+    img_fill2 = imfill(img_pad, 'holes');               % fill it from the outside
     img_unpad = img_fill2(1:end-1, 2:end);
-    img_fill3 = bwareafilt(img_unpad, 1, 'largest'); % retain only largest 
-    img_edge = edge(img_fill3, 'sobel'); % find edge
+    img_fill3 = bwareafilt(img_unpad, 1, 'largest');    % retain only largest 
+    img_edge = edge(img_fill3, 'sobel');                % find edge
     
     fig = figure();
     subplot(2,3,1)
