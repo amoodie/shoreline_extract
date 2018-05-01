@@ -8,8 +8,11 @@ function [] = build_shorelineset()
     directory = '../data';
 
     % create the list of folders to loop through
-    folders = strsplit( ls(strcat('./', directory, '/')) );
-    countfolders = length(folders)-1;
+    listing = dir(directory); % all items in directory
+    listing(ismember( {listing.name}, {'.', '..'})) = [];  % dont want . or ..
+    direcoriesBool = [listing.isdir]; % logical of directories only
+    folders = cellstr(  vertcat( listing(direcoriesBool).name )  ); % list of folder names only
+    countfolders = length(folders);
     
     % initialize some lists
     names = cell(countfolders,1);       % name of images
@@ -22,9 +25,12 @@ function [] = build_shorelineset()
     deltaLRcoord = [713380, 4162227];
     deltaLLcoord = [deltaULcoord(1), deltaLRcoord(2)];
 
+    % loop through all the folder first to generate some metadata for sorting
+    % sort is important for making a movie
     [sortidx] = get_sortorder(folders, countfolders, directory);
-    folders_sort = folders(sortidx);
+    folders_sort = folders(sortidx); % rearange folders into this order for main loop
     
+    % main image --> shoreline processing code
     for i = 1:countfolders
         disp('operating on image folder: ', i)
         
@@ -62,13 +68,21 @@ function [] = build_shorelineset()
 end
 
 function [sortidx] = get_sortorder(folders, countfolders, directory)
-    dates = NaN(countfolders, 1);
-    for i = 1:countfolders;
-        imagefolder = strcat(directory, '/', folders(i), '/', folders(i));
-        fidmetadata = fopen(char(strcat('./', imagefolder, '_MTL.txt')));
+    % sort the folders for processing in order,
+    % this is needed for making a movie while processing if desired
+    
+    % initialize
+    dates = NaN(countfolders, 1); 
+    
+    % loop through to get metadata
+    for i = 1:countfolders
+        imagefolder = fullfile(directory, folders(i)); % concatenate to build this_folder info
+        imagemetafile = fullfile(imagefolder, strcat(folders(i), '_MTL.txt'));
+        fidmetadata = fopen(char(imagemetafile)); % fid of metadata file
         [meta] = get_metadata(fidmetadata);
         dates(i) = meta.date;
     end
+    
     [~, sortidx] = sort(dates);
 end
 
