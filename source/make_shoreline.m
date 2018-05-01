@@ -5,7 +5,7 @@ function make_shoreline()
     [auto.data] = load_data('auto');
     T = load('./shorelines/deltaLLcoord.mat');
     deltaCROPLLcoord = T.deltaLLcoord;
-    deltaLLcoord = [611066 4149751]; % this is Lijin
+    deltaLLcoord = [611066, 4149751]; % this is Lijin
     
     % make subsets
     [lobe_mask] = make_mask([6.77e5 4.177e6]);
@@ -18,66 +18,104 @@ function make_shoreline()
     [auto.deltarad] = get_radius(auto.data, deltaLLcoord);
     [manu.loberad] = get_radius(manu.lobe, lobe_mask.acoord);
     [auto.loberad] = get_radius(auto.lobe, lobe_mask.acoord);
-    [manu.lobeint] = get_intersection(manu.lobe, 'AC1');
-    [auto.lobeint] = get_intersection(auto.lobe, 'AC1');
-    [manu.AC2int] = get_intersection(manu.lobe, 'AC2');
-    [auto.AC2int] = get_intersection(auto.lobe, 'AC2');
-    [manu.modint] = get_intersection(manu.lobe, 'modern');
+    [manu.qingint] = get_intersection(manu.lobe, 'AC1'); % intersection with Qingshuigou
+    [auto.qingint] = get_intersection(auto.lobe, 'AC1'); 
+    [manu.Q8int] = get_intersection(manu.lobe, 'AC2'); % intersection with Q8 lobe
+    [auto.Q8int] = get_intersection(auto.lobe, 'AC2');
+    [manu.modint] = get_intersection(manu.lobe, 'modern'); % intersection with modern lobe
     [auto.modint] = get_intersection(auto.lobe, 'modern');
     
     % make tables
     manu.tab = make_table(manu);
     auto.tab = make_table(auto);
-    lobe.tab = make_rangetable(manu, auto, [datenum('1976','YYYY') datenum('07/31/1997','mm/dd/YYYY')]);
-    all.tab = make_rangetable(manu, auto, [datenum('1850','YYYY') datenum('2020','YYYY')]);
-    preAC2.tab = make_rangetable(manu, auto, [datenum('1850','YYYY') datenum('1997','YYYY')]);
+    all.tab = make_rangetable(manu, auto, [datenum('1850','YYYY'), datenum('2020','YYYY')]); % all data from all time
+    qing.tab = make_rangetable(manu, auto, [datenum('1976','YYYY'), datenum('07/31/1997','mm/dd/YYYY')]); % only data from qingshuigou lobe development
+    postqing.tab = make_rangetable(manu, auto, [datenum('07/31/1997','mm/dd/YYYY'), datenum('2020', 'YYYY')]); % only data from *after* qingshuigou lobe development
+    preQ8.tab = make_rangetable(manu, auto, [datenum('1850','YYYY'), datenum('1997','YYYY')]); % all data before abandonment of qingshuigou
+    Q8.tab = make_rangetable(manu, auto, [datenum('07/31/1997','mm/dd/YYYY'), datenum('06/31/2007','mm/dd/YYYY')]); % only data from Q8 lobe development
+    mod.tab = make_rangetable(manu, auto, [datenum('06/31/2007','mm/dd/YYYY'), datenum('2020','YYYY')]); % only data from modern lobe development
     
     % make models
-    preAC2.deltamodel = fitlm(preAC2.tab, 'meandeltarad ~ date');
-    preAC2.deltaeval.b = preAC2.deltamodel.Coefficients.Estimate(1);
-    preAC2.deltaeval.m = preAC2.deltamodel.Coefficients.Estimate(2);
+    % entire delta radius model
+    preQ8.deltamodel = fitlm(preQ8.tab, 'meandeltarad ~ date');
+    preQ8.deltaeval.b = preQ8.deltamodel.Coefficients.Estimate(1);
+    preQ8.deltaeval.m = preQ8.deltamodel.Coefficients.Estimate(2);
+    preQ8.deltaeval.bserr = bootstrp(35, @mean, preQ8.deltamodel.Residuals.Raw);
+    preQ8.deltaeval.CI = coefCI(preQ8.deltamodel);
+    preQ8.deltaeval.err = mean(abs(preQ8.deltaeval.CI(2,:)-preQ8.deltaeval.m));
+    preQ8.deltaeval.r2 = preQ8.deltamodel.Rsquared.ordinary;
+    preQ8.deltaeval.xs = linspace(min(preQ8.tab.date), max(preQ8.tab.date), 10);
+    preQ8.deltaeval.ys = ((preQ8.deltaeval.m .* preQ8.deltaeval.xs) + preQ8.deltaeval.b);
     
-    preAC2.deltaeval.bserr = bootstrp(35, @mean, preAC2.deltamodel.Residuals.Raw);
-    preAC2.deltaeval.CI = coefCI(preAC2.deltamodel);
-    preAC2.deltaeval.err = mean(abs(preAC2.deltaeval.CI(2,:)-preAC2.deltaeval.m));
-    preAC2.deltaeval.r2 = preAC2.deltamodel.Rsquared.ordinary;
-    preAC2.deltaeval.xs = linspace(min(preAC2.tab.date), max(preAC2.tab.date), 10);
-    preAC2.deltaeval.ys = ((preAC2.deltaeval.m .* preAC2.deltaeval.xs) + preAC2.deltaeval.b);
+    % quingshuigou lobe radius model
+    qing.radmodel = fitlm(qing.tab, 'meanloberad ~ date');
+    qing.radeval.b = qing.radmodel.Coefficients.Estimate(1);
+    qing.radeval.m = qing.radmodel.Coefficients.Estimate(2);
+    qing.radeval.CI = coefCI(qing.radmodel);
+    qing.radeval.err = mean(abs(qing.radeval.CI(2,:)-qing.radeval.m));
+    qing.radeval.r2 = qing.radmodel.Rsquared.ordinary;
+    qing.radeval.xs = linspace(min(qing.tab.date), max(qing.tab.date), 10);
+    qing.radeval.ys = ((qing.radeval.m .* qing.radeval.xs) + qing.radeval.b);
     
-    lobe.radmodel = fitlm(lobe.tab, 'meanloberad ~ date');
-    lobe.radeval.b = lobe.radmodel.Coefficients.Estimate(1);
-    lobe.radeval.m = lobe.radmodel.Coefficients.Estimate(2);
-    lobe.radeval.CI = coefCI(lobe.radmodel);
-    lobe.radeval.err = mean(abs(lobe.radeval.CI(2,:)-lobe.radeval.m));
-    lobe.radeval.r2 = lobe.radmodel.Rsquared.ordinary;
-    lobe.radeval.xs = linspace(min(lobe.tab.date), max(lobe.tab.date), 10);
-    lobe.radeval.ys = ((lobe.radeval.m .* lobe.radeval.xs) + lobe.radeval.b);
+    % quingshuigou lobe progradation rate model
+    qing.intmodel = fitlm(qing.tab, 'qingint ~ date');
+    qing.inteval.b = qing.intmodel.Coefficients.Estimate(1);
+    qing.inteval.m = qing.intmodel.Coefficients.Estimate(2);
+    qing.inteval.CI = coefCI(qing.intmodel);
+    qing.inteval.err = mean(abs(qing.inteval.CI(2,:)-qing.inteval.m));
+    qing.inteval.r2 = qing.intmodel.Rsquared.ordinary;
+    qing.inteval.xs = linspace(min(qing.tab.date), max(qing.tab.date), 10);
+    qing.inteval.ys = ((qing.inteval.m .* qing.inteval.xs) + qing.inteval.b);
     
-    lobe.intmodel = fitlm(lobe.tab, 'lobeint ~ date');
-    lobe.inteval.b = lobe.intmodel.Coefficients.Estimate(1);
-    lobe.inteval.m = lobe.intmodel.Coefficients.Estimate(2);
-    lobe.inteval.CI = coefCI(lobe.intmodel);
-    lobe.inteval.err = mean(abs(lobe.inteval.CI(2,:)-lobe.inteval.m));
-    lobe.inteval.r2 = lobe.intmodel.Rsquared.ordinary;
-    lobe.inteval.xs = linspace(min(lobe.tab.date), max(lobe.tab.date), 10);
-    lobe.inteval.ys = ((lobe.inteval.m .* lobe.inteval.xs) + lobe.inteval.b);
+    % qingshuigou lobe retreat after abandonment model
+    qing.retreatmodel = fitlm(postqing.tab, 'qingint ~ date');
+    qing.retreateval.b = qing.retreatmodel.Coefficients.Estimate(1);
+    qing.retreateval.m = qing.retreatmodel.Coefficients.Estimate(2);
+    qing.retreateval.CI = coefCI(qing.retreatmodel);
+    qing.retreateval.err = mean(abs(qing.retreateval.CI(2,:)-qing.retreateval.m));
+    qing.retreateval.r2 = qing.retreatmodel.Rsquared.ordinary;
+    qing.retreateval.xs = linspace(min(postqing.tab.date), max(postqing.tab.date), 10);
+    qing.retreateval.ys = ((qing.retreateval.m .* qing.retreateval.xs) + qing.retreateval.b);
     
-    % convert to lines for publication
-%     manu.data(:,3) = manu.data(:,2);
-%     for i = 1:size(auto.data,1)
-%         input = auto.data{i,2};
-%         [auto.data(i, 3)] = get_ordered(input);
-%     end
+    % Q8 lobe progradation model
+    Q8.intmodel = fitlm(Q8.tab, 'Q8int ~ date');
+    Q8.inteval.b = Q8.intmodel.Coefficients.Estimate(1);
+    Q8.inteval.m = Q8.intmodel.Coefficients.Estimate(2);
+    Q8.inteval.CI = coefCI(Q8.intmodel);
+    Q8.inteval.err = mean(abs(Q8.inteval.CI(2,:)-Q8.inteval.m));
+    Q8.inteval.r2 = Q8.intmodel.Rsquared.ordinary;
+    Q8.inteval.xs = linspace(min(Q8.tab.date), max(Q8.tab.date), 10);
+    Q8.inteval.ys = ((Q8.inteval.m .* Q8.inteval.xs) + Q8.inteval.b);
+    
+    % Q8 lobe retreat after abandonment model
+    Q8.retreatmodel = fitlm(mod.tab, 'Q8int ~ date');
+    Q8.retreateval.b = Q8.retreatmodel.Coefficients.Estimate(1);
+    Q8.retreateval.m = Q8.retreatmodel.Coefficients.Estimate(2);
+    Q8.retreateval.CI = coefCI(Q8.retreatmodel);
+    Q8.retreateval.err = mean(abs(Q8.retreateval.CI(2,:)-Q8.retreateval.m));
+    Q8.retreateval.r2 = Q8.retreatmodel.Rsquared.ordinary;
+    Q8.retreateval.xs = linspace(min(mod.tab.date), max(mod.tab.date), 10);
+    Q8.retreateval.ys = ((Q8.retreateval.m .* Q8.retreateval.xs) + Q8.retreateval.b);
+    
+    % modern lobe progradation model
+    mod.intmodel = fitlm(mod.tab, 'modint ~ date');
+    mod.inteval.b = mod.intmodel.Coefficients.Estimate(1);
+    mod.inteval.m = mod.intmodel.Coefficients.Estimate(2);
+    mod.inteval.CI = coefCI(mod.intmodel);
+    mod.inteval.err = mean(abs(mod.inteval.CI(2,:)-mod.inteval.m));
+    mod.inteval.r2 = mod.intmodel.Rsquared.ordinary;
+    mod.inteval.xs = linspace(min(mod.tab.date), max(mod.tab.date), 10);
+    mod.inteval.ys = ((mod.inteval.m .* mod.inteval.xs) + mod.inteval.b);
     
     % make plots
     fig_alldata = figure('Visible', 'off');
     fig_shorelines = figure('Visible', 'off');
     fig_XOMmeanrad = figure('Visible', 'off');
     fig_JGRmeanrad = figure('Visible', 'off');
-    [fig_alldata] = all_data(manu, auto, lobe, preAC2, fig_alldata);
+    [fig_alldata] = all_data(manu, auto, qing, preQ8, Q8, mod, fig_alldata);
 %     [fig_shorelines] = all_shorelines(manu, auto, deltaLLcoord, deltaCROPLLcoord, lobe_mask, fig_shorelines);
 %     [fig_XOMmeanrad] = XOM_meanrad(manu, auto, lobe, preAC2, fig_XOMmeanrad);
-    [fig_JGRmeanrad] = JGR_meanrad(manu, auto, lobe, preAC2, fig_JGRmeanrad);
+    [fig_JGRmeanrad] = JGR_meanrad(manu, auto, qing, preQ8, fig_JGRmeanrad);
     
     [fig_movie] = movie_fig(manu, auto, deltaLLcoord, deltaCROPLLcoord, lobe_mask, fig_shorelines);
     
@@ -169,11 +207,11 @@ end
 
 function [table] = make_table(data)
     datamat = horzcat( cell2mat(data.data(:,1)), cell2mat(data.deltarad(:,3)), cell2mat(data.deltarad(:,4)), ...
-        cell2mat(data.loberad(:,3)), cell2mat(data.loberad(:,4)), cell2mat(data.lobeint(:,3)), cell2mat(data.lobeint(:,4)), ...
-        cell2mat(data.AC2int(:,3)), cell2mat(data.AC2int(:,4)), cell2mat(data.modint(:,3)), cell2mat(data.modint(:,4)) );
+        cell2mat(data.loberad(:,3)), cell2mat(data.loberad(:,4)), cell2mat(data.qingint(:,3)), cell2mat(data.qingint(:,4)), ...
+        cell2mat(data.Q8int(:,3)), cell2mat(data.Q8int(:,4)), cell2mat(data.modint(:,3)), cell2mat(data.modint(:,4)) );
     table = array2table(datamat, ...
         'VariableNames', {'date', 'meandeltarad', 'meandeltaraderr', 'meanloberad', 'meanloberaderr', ...
-        'lobeint', 'lobeinterr', 'AC2int', 'AC2interr', 'modint', 'modinterr'});
+        'qingint', 'qinginterr', 'Q8int', 'Q8interr', 'modint', 'modinterr'});
 end
 
 function [table] = make_rangetable(manu, auto, range)
@@ -318,7 +356,7 @@ function [movieFIG] = movie_fig(manu, auto, deltaLLcoord, deltaCROPLLcoord, mask
 
 end
 
-function [fig] = JGR_meanrad(manu, auto, lobe, modelset, fig)
+function [fig] = JGR_meanrad(manu, auto, qing, preQ8, fig)
     figure(fig)
     [colorOrder] = get(gca, 'ColorOrder');
     barColor = [0.8 0.8 0.8];
@@ -332,13 +370,13 @@ function [fig] = JGR_meanrad(manu, auto, lobe, modelset, fig)
                 [manu.tab.meandeltaraderr; auto.tab.meandeltaraderr(slct)] / 1000, 'LineStyle', 'none', 'Color', barColor);
 %             m = plot(manu.tab.date, manu.tab.meandeltarad / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
 %             a = plot(auto.tab.date(slct), auto.tab.meandeltarad(slct) / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
-            f = plot(modelset.tab.date, modelset.tab.meandeltarad / 1000, 'o', 'MarkerSize', 4, 'MarkerEdgeColor', 'k','MarkerFaceColor', 'r');
-            plot(modelset.deltaeval.xs, modelset.deltaeval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
+            f = plot(preQ8.tab.date, preQ8.tab.meandeltarad / 1000, 'o', 'MarkerSize', 4, 'MarkerEdgeColor', 'k','MarkerFaceColor', 'r');
+            plot(preQ8.deltaeval.xs, preQ8.deltaeval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
         datetick('x', 'YYYY')
         xlim([datenum('1840','YYYY') datenum('2010','YYYY')])
         ylim([40 90])
-        params1 = {['rate = ', num2str(round(modelset.deltaeval.m*365.25)/1000), ' \pm', num2str(round(modelset.deltaeval.err*365.25,-1)/1000), ' km/yr'], ...
-            ['r^2 = ', num2str(round(modelset.deltaeval.r2, 2))]};
+        params1 = {['rate = ', num2str(round(preQ8.deltaeval.m*365.25)/1000), ' \pm', num2str(round(preQ8.deltaeval.err*365.25,-1)/1000), ' km/yr'], ...
+            ['r^2 = ', num2str(round(preQ8.deltaeval.r2, 2))]};
         format1 = sprintf('%s\n', params1{:});
         annot1 = text(0.3, 0.1, format1(1:end-1), ...
             'Color', [0 0 0], 'Parent', s1, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
@@ -348,24 +386,24 @@ function [fig] = JGR_meanrad(manu, auto, lobe, modelset, fig)
         box on
         set(gca, 'FontSize', 10, 'LineWidth', 1.5)
     s3 = subplot(1, 2, 2);
-    manu.tab.lobeint(1) = 0;
-    manu.tab.lobeint(3) = NaN;
+    manu.tab.qingint(1) = 0;
+    manu.tab.qingint(3) = NaN;
         cla
         hold on
 %             plot(repmat(datenum('1976','YYYY'), 1, 2), [0 35], ':', 'Color', [0 0 0])
 %             plot(repmat(datenum('1997','YYYY'), 1, 2), [0 35], ':', 'Color', [0 0 0])
-            e3 = errorbar([datenum('1855','YYYY'); manu.tab.date; auto.tab.date(slct)], [0; manu.tab.lobeint; auto.tab.lobeint(slct)] / 1000, ...
-                [2000; manu.tab.lobeinterr; auto.tab.lobeinterr(slct)] / 1000, 'LineStyle', 'none', 'Color', barColor);
-            m = plot(manu.tab.date, manu.tab.lobeint / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
-            a = plot(auto.tab.date(slct), auto.tab.lobeint(slct) / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
-            f = plot(lobe.tab.date, lobe.tab.lobeint / 1000, 'o', 'MarkerSize', 4, 'MarkerEdgeColor', 'k','MarkerFaceColor', 'r');
-            plot(lobe.inteval.xs, lobe.inteval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
+            e3 = errorbar([datenum('1855','YYYY'); manu.tab.date; auto.tab.date(slct)], [0; manu.tab.qingint; auto.tab.qingint(slct)] / 1000, ...
+                [2000; manu.tab.qinginterr; auto.tab.qinginterr(slct)] / 1000, 'LineStyle', 'none', 'Color', barColor);
+            m = plot(manu.tab.date, manu.tab.qingint / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
+            a = plot(auto.tab.date(slct), auto.tab.qingint(slct) / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
+            f = plot(qing.tab.date, qing.tab.qingint / 1000, 'o', 'MarkerSize', 4, 'MarkerEdgeColor', 'k','MarkerFaceColor', 'r');
+            plot(qing.inteval.xs, qing.inteval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
         datetick('x', 'YYYY')
         xlim([datenum('1970', 'YYYY') datenum('2000', 'YYYY')])
         set(gca, 'XTick', datenum({'1975', '1980', '1985', '1990', '1995', '2000'}, 'YYYY'), 'XTickLabel', {'1975', '', '1985', '', '', '2000'})
         ylim([0 40])
-        params3 = {['rate = ', num2str(round(lobe.inteval.m*365.25,-1)/1000), ' \pm', num2str(round(lobe.inteval.err*365.25,-1)/1000), ' km/yr'], ...
-            ['r^2 = ', num2str(round(lobe.inteval.r2, 2))]};
+        params3 = {['rate = ', num2str(round(qing.inteval.m*365.25,-1)/1000), ' \pm', num2str(round(qing.inteval.err*365.25,-1)/1000), ' km/yr'], ...
+            ['r^2 = ', num2str(round(qing.inteval.r2, 2))]};
         format3 = sprintf('%s\n', params3{:});
         annot3 = text(0.35, 0.1, format3(1:end-1), ...
             'Color', [0 0 0], 'Parent', s3, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
@@ -381,11 +419,11 @@ function [fig] = JGR_meanrad(manu, auto, lobe, modelset, fig)
     print('-depsc','-r300','-painters', './figs/JGR_shoreline_data.eps');
 end
 
-
-
-function [fig] = all_data(manu, auto, lobe, modelset, fig)
+function [fig] = all_data(manu, auto, qing, preQ8, Q8, mod, fig)
     figure(fig)
     [colorOrder] = get(gca,'ColorOrder');
+    
+    % mean delta radius
     s1 = subplot(2, 3, 1);
         cla
         hold on
@@ -393,18 +431,23 @@ function [fig] = all_data(manu, auto, lobe, modelset, fig)
             plot(repmat(datenum('1997','YYYY'), 1, 2), [0 70], ':', 'Color', [0 0 0])
             m = plot(manu.tab.date, manu.tab.meandeltarad / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(1, :));
             a = plot(auto.tab.date, auto.tab.meandeltarad / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(2, :));
-            plot(modelset.deltaeval.xs, modelset.deltaeval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
+            plot(preQ8.deltaeval.xs, preQ8.deltaeval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
         legend([m a], {'manual', 'auto'}, 'Location', 'NorthWest')
         datetick('x', 'YYYY')
         xlim([datenum('1850','YYYY') datenum('2020','YYYY')])
-        params1 = {['rate = ', num2str(round(modelset.deltaeval.m*365.25)), ' m/yr'], ...
-            ['r^2 = ', num2str(round(modelset.deltaeval.r2, 2))]};
+        % model parameters writing
+        params1 = {['rate = ', num2str(round(preQ8.deltaeval.m*365.25)), ' m/yr'], ...
+            ['r^2 = ', num2str(round(preQ8.deltaeval.r2, 2))]};
         format1 = sprintf('%s\n', params1{:});
         annot1 = text(0.5, 0.1, format1(1:end-1), ...
             'Color', [0 0 0], 'Parent', s1, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
         title('mean delta radius')
         xlabel('year')
         ylabel('mean delta radius (km)')
+        box on
+        set(gca, 'LineWidth', 1.1, 'FontSize', 10, 'XColor', 'k', 'YColor', 'k')
+        
+    % qinshuigou lobe radius
     s2 = subplot(2, 3, 2);
         cla
         hold on
@@ -412,70 +455,115 @@ function [fig] = all_data(manu, auto, lobe, modelset, fig)
             plot(repmat(datenum('1997','YYYY'), 1, 2), [0 30], ':', 'Color', [0 0 0])
             plot(manu.tab.date, manu.tab.meanloberad / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(1, :))
             plot(auto.tab.date, auto.tab.meanloberad / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(2, :))
-            plot(lobe.radeval.xs, lobe.radeval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
+            plot(qing.radeval.xs, qing.radeval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
         datetick('x', 'YYYY')
         xlim([datenum('1950','YYYY') datenum('2020','YYYY')])
-        params2 = {['rate = ', num2str(round(lobe.radeval.m*365.25)), ' m/yr'], ...
-            ['r^2 = ', num2str(round(lobe.radeval.r2, 2))]};
+        % model parameters writing
+        params2 = {['rate = ', num2str(round(qing.radeval.m*365.25)), ' m/yr'], ...
+            ['r^2 = ', num2str(round(qing.radeval.r2, 2))]};
         format2 = sprintf('%s\n', params2{:});
         annot2 = text(0.5, 0.1, format2(1:end-1), ...
             'Color', [0 0 0], 'Parent', s2, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-        title('mean lobe radius')
+        title('mean Qingshuigou lobe radius')
         xlabel('year')
         ylabel('mean lobe radius (km)')
+        box on
+        set(gca, 'LineWidth', 1.1, 'FontSize', 10, 'XColor', 'k', 'YColor', 'k')
+        
+    % qingshuigou lobe lengths
     s3 = subplot(2, 3, 3);
         cla
         hold on
             plot(repmat(datenum('1976','YYYY'), 1, 2), [0 35], ':', 'Color', [0 0 0])
             plot(repmat(datenum('1997','YYYY'), 1, 2), [0 35], ':', 'Color', [0 0 0])
-            plot(manu.tab.date, manu.tab.lobeint / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(1, :))
-            plot(auto.tab.date, auto.tab.lobeint / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(2, :))
-            plot(lobe.inteval.xs, lobe.inteval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
+            plot(repmat(max(mod.tab.date), 1, 2), [0 35], ':', 'Color', [0 0 0])
+            plot(manu.tab.date, manu.tab.qingint / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(1, :))
+            plot(auto.tab.date, auto.tab.qingint / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(2, :))
+            plot(qing.inteval.xs, qing.inteval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
+            plot(qing.retreateval.xs, qing.retreateval.ys / 1000, 'LineStyle', ':', 'LineWidth', 2, 'Color', [0 0 0])
         datetick('x', 'YYYY')
         xlim([datenum('1950','YYYY') datenum('2020','YYYY')])
-        params = {['rate = ', num2str(round(lobe.inteval.m*365.25)), ' m/yr'], ...
-            ['r^2 = ', num2str(round(lobe.inteval.r2, 2))]};
+        % model (progradation) parameters writing
+        params = {['rate = ', num2str(round(qing.inteval.m*365.25)), ' m/yr'], ...
+            ['r^2 = ', num2str(round(qing.inteval.r2, 2))]};
         format3 = sprintf('%s\n', params{:});
         annot3 = text(0.5, 0.1, format3(1:end-1), ...
+            'Color', [0 0 0], 'Parent', s3, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
+        % model (retreat) parameters writing
+        params = {['rate = ', num2str(round(qing.retreateval.m*365.25)), ' m/yr'], ...
+            ['r^2 = ', num2str(round(qing.retreateval.r2, 2))]};
+        format3 = sprintf('%s\n', params{:});
+        annot3 = text(0.5, 0.25, format3(1:end-1), ...
             'Color', [0 0 0], 'Parent', s3, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
         title('Qingshuiguo lobe length')
         xlabel('year')
         ylabel('intersection distance from datum (km)')
+        box on
+        set(gca, 'LineWidth', 1.1, 'FontSize', 10, 'XColor', 'k', 'YColor', 'k')
+        
+    % Q8 lobe length
     s4 = subplot(2, 3, 4);
         cla
         hold on
-        plot(manu.tab.date, manu.tab.AC2int / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(1, :))
-        plot(auto.tab.date, auto.tab.AC2int / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(2, :))
+        plot(repmat(min(Q8.tab.date), 1, 2), [0 35], ':', 'Color', [0 0 0])
+        plot(repmat(max(Q8.tab.date), 1, 2), [0 35], ':', 'Color', [0 0 0])
+        plot(repmat(max(mod.tab.date), 1, 2), [0 35], ':', 'Color', [0 0 0])
+        plot(manu.tab.date, manu.tab.Q8int / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(1, :))
+        plot(auto.tab.date, auto.tab.Q8int / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(2, :))
+        plot(Q8.inteval.xs, Q8.inteval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
+        plot(Q8.retreateval.xs, Q8.retreateval.ys / 1000, 'LineStyle', ':', 'LineWidth', 2, 'Color', [0 0 0])
         datetick('x', 'YYYY')
         xlim([datenum('1990','YYYY') datenum('2020','YYYY')])
-%         params = {['rate = ', num2str(round(lobe.inteval.m*365.25)), ' m/yr'], ...
-%             ['r^2 = ', num2str(round(lobe.inteval.r2, 2))]};
-%         format3 = sprintf('%s\n', params{:});
-%         annot3 = text(0.5, 0.1, format3(1:end-1), ...
-%             'Color', [0 0 0], 'Parent', s3, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-        title('AC2 lobe length')
+        % model (progradation) parameters writing
+        params = {['rate = ', num2str(round(Q8.inteval.m*365.25)), ' m/yr'], ...
+            ['r^2 = ', num2str(round(Q8.inteval.r2, 2))]};
+        format3 = sprintf('%s\n', params{:});
+        annot3 = text(0.5, 0.1, format3(1:end-1), ...
+            'Color', [0 0 0], 'Parent', s4, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
+        % model (retreat) parameters writing
+        params = {['rate = ', num2str(round(Q8.retreateval.m*365.25)), ' m/yr'], ...
+            ['r^2 = ', num2str(round(Q8.retreateval.r2, 2))]};
+        format3 = sprintf('%s\n', params{:});
+        annot3 = text(0.5, 0.3, format3(1:end-1), ...
+            'Color', [0 0 0], 'Parent', s4, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
+        title('Q8 lobe length')
         xlabel('year')
         ylabel('intersection distance from datum (km)')
+        box on
+        set(gca, 'LineWidth', 1.1, 'FontSize', 10, 'XColor', 'k', 'YColor', 'k')
+        
+    % modern lobe lengths
     s5 = subplot(2, 3, 5);
         cla
         hold on
+        plot(repmat(max(Q8.tab.date), 1, 2), [0 35], ':', 'Color', [0 0 0])
+        plot(repmat(max(mod.tab.date), 1, 2), [0 35], ':', 'Color', [0 0 0])
         plot(manu.tab.date, manu.tab.modint / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(1, :))
         plot(auto.tab.date, auto.tab.modint / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(2, :))
+        plot(mod.inteval.xs, mod.inteval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
         datetick('x', 'YYYY')
         xlim([datenum('1990','YYYY') datenum('2020','YYYY')])
-%         params = {['rate = ', num2str(round(lobe.inteval.m*365.25)), ' m/yr'], ...
-%             ['r^2 = ', num2str(round(lobe.inteval.r2, 2))]};
-%         format3 = sprintf('%s\n', params{:});
-%         annot3 = text(0.5, 0.1, format3(1:end-1), ...
-%             'Color', [0 0 0], 'Parent', s3, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
+        params = {['rate = ', num2str(round(mod.inteval.m*365.25)), ' m/yr'], ...
+            ['r^2 = ', num2str(round(mod.inteval.r2, 2))]};
+        format3 = sprintf('%s\n', params{:});
+        annot3 = text(0.5, 0.1, format3(1:end-1), ...
+            'Color', [0 0 0], 'Parent', s5, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
         title('modern lobe length')
         xlabel('year')
         ylabel('intersection distance from datum (km)')
+        box on
+        set(gca, 'LineWidth', 1.1, 'FontSize', 10, 'XColor', 'k', 'YColor', 'k')
         
     set(fig,'Visible', 'on');
     set(fig, 'Pos', [100 100 1200 800]);
     set(fig, 'PaperPositionMode', 'auto')
-%     print('-dpng', '-r300', './figs/shoreline_data.png');
+    
+    print('-dpng', '-r300', './all_shoreline_data.png');
+    print('-depsc', '-painters', '-r300', './all_shoreline_data.eps');
+    
+    set(fig, 'PaperUnits', 'Points', 'PaperSize', [fig.Position(3), fig.Position(4)])
+    print('-dpdf', '-r300', './all_shoreline_data.pdf');
+    
 end
 
 function [fig] = XOM_meanrad(manu, auto, lobe, modelset, fig)
@@ -506,17 +594,17 @@ function [fig] = XOM_meanrad(manu, auto, lobe, modelset, fig)
         box on
         set(gca, 'FontSize', 10, 'LineWidth', 1.5)
     s3 = subplot(1, 2, 2);
-    manu.tab.lobeint(1) = 0;
-    manu.tab.lobeint(3) = NaN;
+    manu.tab.qingint(1) = 0;
+    manu.tab.qingint(3) = NaN;
         cla
         hold on
             plot(repmat(datenum('1976','YYYY'), 1, 2), [0 35], ':', 'Color', [0 0 0])
             plot(repmat(datenum('1997','YYYY'), 1, 2), [0 35], ':', 'Color', [0 0 0])
-            e3 = errorbar([manu.tab.date; auto.tab.date], [manu.tab.lobeint; auto.tab.lobeint] / 1000, ...
-                [manu.tab.lobeinterr; auto.tab.lobeinterr] / 1000, 'LineStyle', 'none', 'Color', barColor);
-            m = plot(manu.tab.date, manu.tab.lobeint / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
-            a = plot(auto.tab.date, auto.tab.lobeint / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
-            f = plot(lobe.tab.date, lobe.tab.lobeint / 1000, 'o', 'MarkerSize', 4, 'MarkerEdgeColor', 'k','MarkerFaceColor', 'r');
+            e3 = errorbar([manu.tab.date; auto.tab.date], [manu.tab.qingint; auto.tab.qingint] / 1000, ...
+                [manu.tab.qinginterr; auto.tab.qinginterr] / 1000, 'LineStyle', 'none', 'Color', barColor);
+            m = plot(manu.tab.date, manu.tab.qingint / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
+            a = plot(auto.tab.date, auto.tab.qingint / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
+            f = plot(lobe.tab.date, lobe.tab.qingint / 1000, 'o', 'MarkerSize', 4, 'MarkerEdgeColor', 'k','MarkerFaceColor', 'r');
             plot(lobe.inteval.xs, lobe.inteval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
         datetick('x', 'YYYY')
         xlim([datenum('1960', 'YYYY') datenum('2020', 'YYYY')])
@@ -541,9 +629,7 @@ end
 
 %% stable
 function [cmap] = colormap_fun(n, s)
-%     RRR = linspace(0  ,255,n+1)/255;
-%     GGG = linspace(0  ,0  ,n+1)/255;
-%     BBB = linspace(255,0  ,n+1)/255;
+
     tfig = figure('Visible', 'off');
     [colorOrder] = get(gca, 'ColorOrder');
     ends = colorOrder(s:s+1, :) * 255;
@@ -554,12 +640,15 @@ function [cmap] = colormap_fun(n, s)
     BBB = linspace(ends(1, 3), ends(2, 3), n+1) / 255;
     
     [cmap] = colormap([RRR',GGG',BBB']);
+    
 end
 
 function [data] = load_data(srcstr)
+
     folders = strsplit(ls(strcat('./shorelines/', srcstr, '_shoreline/')));
     countfolders = length(folders)-1;
     data = cell(countfolders, 2);
+    
     for i = 1:countfolders
         filename = strcat('./shorelines/', srcstr, '_shoreline/', char(folders(i)));
         points = csvread(filename, 1, 0);
@@ -568,6 +657,7 @@ function [data] = load_data(srcstr)
         data(i, 1) = num2cell(date);
         data(i, 2) = {points(:,[1 2])};
     end
+    
     dates = arrayfun(@cell2mat, data(:,1));
     [~, idx] = sort(dates);
     data = data(idx, :);

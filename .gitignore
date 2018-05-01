@@ -25,5 +25,4 @@ sccprj/
 octave-workspace
 
 # don't sync data because it's too big
-data/LC81210342014201LGN00
-data/LT51210341985329HAJ00
+data/*
