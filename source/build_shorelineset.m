@@ -25,28 +25,37 @@ function [] = build_shorelineset()
     clouds = NaN(countfolders,1);       % cloud % of images
     outputs = NaN(countfolders,8);      % output dataset
     
-    deltaULcoord = [633497, 4236964]; % apex of the delta for cropping
+    deltaULcoord = [633497, 4236964]; 
     deltacropDim = [3975, 3790];
     deltaLRcoord = [713380, 4162227];
-    deltaLLcoord = [deltaULcoord(1), deltaLRcoord(2)];
+    deltaLLcoord = [deltaULcoord(1), deltaLRcoord(2)]; % apex of the delta for cropping
 
     % loop through all the folder first to generate some metadata for sorting
     % sort is important for making a movie
     [sortidx, meta_sort] = get_sortorder(folders, countfolders, directory);
     folders_sort = folders(sortidx); % rearange folders into this order for main loop
     
-    % main image --> shoreline processing code
+    % loop to process image --> shoreline 
     for i = 1:countfolders
         disp( ['operating on image folder: ', num2str(i), ' of ', num2str(countfolders)] )
         
         clear shoreline
         
+        % grab the metadata
         meta = meta_sort{i};
         [bandset] = set_bandset(meta.mission); % return bands to use as [thresh, R, G, B]
         
-        thresh_img = imread(char(strcat('./', imagefolder, '_B', bandset(1), '.TIF')));
+        % open the image, and identify the threshold to use
+        thresh_imgname = strcat(meta.name, '_B', bandset(1), '.TIF');
+        thresh_img = imread(char(fullfile(meta.imagefolder, thresh_imgname)));
         
+        % threshold the image to a binary 
         [shoreline_idx, thresh_crop] = process(thresh_img,meta.ULcoord, deltaULcoord, deltaLRcoord, meta.res);       
+        
+        % find the shoreline
+        
+        % make a RGB image
+        
         
         ymax = max(shoreline_idx(:,2));
         shoreline(:, 1) = (shoreline_idx(:, 1).*meta.res) + repmat(deltaLLcoord(1), size(shoreline_idx, 1), 1);
@@ -85,7 +94,7 @@ function [sortidx, meta_sort] = get_sortorder(folders, countfolders, directory)
         fidmetadata = fopen(char(imagemetafile)); % fid of metadata file
         
         % process the file to extract the metadata
-        [meta{i, 1}] = get_metadata(fidmetadata);
+        [meta{i, 1}] = get_metadata(fidmetadata, imagefolder);
         
         % date is what we're after for sorting
         dates(i) = meta{i}.date;
@@ -206,7 +215,7 @@ function [bandset] = set_bandset(mission)
 end
 
 
-function [meta] = get_metadata(fidmetadata)
+function [meta] = get_metadata(fidmetadata, imagefolder)
     
     % read the raw text file into a cell array of strings
     [metadata] = textscan(fidmetadata, '%s','delimiter', '\n');
@@ -234,6 +243,9 @@ function [meta] = get_metadata(fidmetadata)
     % what is the scene ID (name)
     [meta.name] = strip_from_meta(metadata, 'LANDSAT_SCENE_ID', 'str');
 
+    % image folder path
+    [meta.imagefolder] = imagefolder;
+    
 end
 
 
