@@ -1,10 +1,15 @@
 function [] = build_shorelineset()
+    %build_shorelineset processes the images and builds a set of csv shorelines from the images
+    %
+    % authored by Andrew J. Moodie and Brandee Carlson
+    % 2015--2018
+    % MIT License
 
     clear variables; 
     close all;
 
     % directory of the data folder (relative or absolute path to the folder)
-    % alternatively use cd <path to location> to execute elsewhere
+    %     alternatively use cd <path to location> to execute elsewhere
     directory = '../data';
 
     % create the list of folders to loop through
@@ -185,52 +190,64 @@ function [bandset] = set_bandset(mission)
 end
 
 function [meta] = get_metadata(fidmetadata)
-    metadata = textscan(fidmetadata, '%s','delimiter', '\n');
     
-    date.idx = find(~cellfun(@isempty,strfind(metadata{1,1}, 'DATE_ACQUIRED')) == 1);
-    date.str = metadata{1,1}(date.idx);
-    date.splt = strsplit(char(date.str),'=');
-    date.val = datenum(date.splt(2));
-    meta.date = date.val;
+    % read the raw text file into a cell array of strings
+    [metadata] = textscan(fidmetadata, '%s','delimiter', '\n');
     
-    clouds.idx = find(~cellfun(@isempty,strfind(metadata{1,1}, 'CLOUD_COVER')) == 1, 1);
-    clouds.str = metadata{1,1}(clouds.idx);
-    clouds.splt = strsplit(char(clouds.str),'=');
-    clouds.val = str2num(char(clouds.splt(2)));
-    meta.clouds = clouds.val; 
+    % strip out the desired info
     
-    ULXcoord.idx = find(~cellfun(@isempty,strfind(metadata{1,1}, 'CORNER_UL_PROJECTION_X_PRODUCT')) == 1);
-    ULXcoord.str = metadata{1,1}(ULXcoord.idx);
-    ULXcoord.splt = strsplit(char(ULXcoord.str),'=');
-    ULXcoord.val = str2num(char(ULXcoord.splt(2)));
-    ULYcoord.idx = find(~cellfun(@isempty,strfind(metadata{1,1}, 'CORNER_UL_PROJECTION_Y_PRODUCT')) == 1);
-    ULYcoord.str = metadata{1,1}(ULYcoord.idx);
-    ULYcoord.splt = strsplit(char(ULYcoord.str),'=');
-    ULYcoord.val = str2num(char(ULYcoord.splt(2)));
-    meta.ULcoord = [ULXcoord.val, ULYcoord.val];
+    % date aquired
+    [date] = strip_from_meta(metadata, 'DATE_ACQUIRED', 'str');
+    [meta.date] = datenum(date);
     
-    mission.idx = find(~cellfun(@isempty,strfind(metadata{1,1}, 'SPACECRAFT_ID')) == 1);
-    mission.str = metadata{1,1}(mission.idx);
-    mission.splt = strsplit(char(mission.str),'=');
-    mission.name = strrep(mission.splt(2), '"', '');
-    mission.val = char(strrep(mission.name, ' ', ''));
-    meta.mission = mission.val;
+    % cloud cover from file
+    [meta.clouds] = strip_from_meta(metadata, 'CLOUD_COVER', 'num');
     
-    res.idx = find(~cellfun(@isempty,strfind(metadata{1,1}, 'GRID_CELL_SIZE_REFLECTIVE')) == 1);
-    res.str = metadata{1,1}(res.idx);
-    res.splt = strsplit(char(res.str),'=');
-    res.val = str2double(char(strrep(res.splt(2), ' ', '')));
-    meta.res = res.val;
+    % upper left geo-coordinate of image
+    [ULXcoord] = strip_from_meta(metadata, 'CORNER_UL_PROJECTION_X_PRODUCT', 'num');
+    [ULYcoord] = strip_from_meta(metadata, 'CORNER_UL_PROJECTION_Y_PRODUCT', 'num');
+    [meta.ULcoord] = [ULXcoord, ULYcoord];
+
+    % what mission shot the image
+    [meta.mission] = strip_from_meta(metadata, 'SPACECRAFT_ID', 'str');
     
-    name.idx = find(~cellfun(@isempty,strfind(metadata{1,1}, 'LANDSAT_SCENE_ID')) == 1);
-    name.str = metadata{1,1}(name.idx);
-    name.splt = strsplit(char(name.str),'=');
-    name.name = strrep(name.splt(2), '"', '');
-    name.val = char(strrep(name.name, ' ', ''));
-    meta.name = name.val;
+    % image resolution
+     [meta.res] = strip_from_meta(metadata, 'GRID_CELL_SIZE_REFLECTIVE', 'num');
+
+    % what is the scene ID (name)
+    [meta.name] = strip_from_meta(metadata, 'LANDSAT_SCENE_ID', 'str');
+
+end
+
+function [value] = strip_from_meta(metadata, keystring, valuetype)
+    %strip_from_meta strips out the value from metadata for a given string
+    %
+    % [value] = strip_from_meta(metadata, keystring, valuetype)
+    % takes:
+    %     metadata = array of metadata from file
+    %     keystring = the string to search for and strip out the value
+    %     valuetype = the type to return ('str' or 'num')
+    % returns:
+    %     value = corresponding entry in metadata formatted as valuetype
     
-    % need to pass into here the arguments for the folder path. Could pass name too?
-    % any way to put this crap into function to take a name and datatype and return that?
+    % find the index and grab that line
+    idx = find(~cellfun(@isempty,strfind(metadata{1,1}, keystring)) == 1);
+    str = metadata{1,1}(idx);
+    
+    % split the string at the equals sign and strip quotes and whitespace
+    splt = strsplit(char(str),'=');
+    noquotes = strrep(splt(2), '"', '');
+    nowhite = strtrim(noquotes{:});
+   
+    % process to the desired type
+    if strcmp(valuetype, 'str')    
+        value = nowhite;
+    elseif strcmp(valuetype, 'num')
+        value = str2double(nowhite);
+    else
+        error('invalid valuetype')
+    end
+
 end
 
 function [thresh] = get_threshold(img)
