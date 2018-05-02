@@ -45,12 +45,21 @@ function [] = build_shorelineset()
         meta = meta_sort{i};
         [bandset] = set_bandset(meta.mission); % return bands to use as [thresh, R, G, B]
         
-        % open the image, and identify the threshold to use
+        % open the image that will be used for thresholding
         thresh_imgname = strcat(meta.name, '_B', bandset(1), '.TIF');
         thresh_img = imread(char(fullfile(meta.imagefolder, thresh_imgname)));
         
+        % crop the image
+        %    this section is Yellow River delta specific and would need to
+        %    be rewritten for any other use.
+        [cropDim] = get_cropDim(deltaULcoord, deltaLRcoord, meta.res);
+        [thresh_crop] = crop_image(thresh_img, meta.ULcoord, deltaULcoord, cropDim, meta.res);
+        
         % threshold the image to a binary 
-        [shoreline_idx, thresh_crop] = process(thresh_img,meta.ULcoord, deltaULcoord, deltaLRcoord, meta.res);       
+        % STOPPED HERE !!!
+        % NEED TO STRIP OUT THE PART OF process() THAT DOES THE
+        % THRESHOLDING, GET BACK THE THRESHED IMG
+        [shoreline_idx, thresh_crop] = process(thresh_img, meta.ULcoord, deltaULcoord, deltaLRcoord, meta.res);       
         
         % find the shoreline
         
@@ -117,8 +126,8 @@ end
 
 
 function [shoreline, thresh_crop] = process(thresh_image,  ULcoord, cropULcoord, cropLRcoord, resolution)
-    [cropDim] =  get_cropDim(cropULcoord, cropLRcoord, resolution);
-    [thresh_crop_raw] = crop_image(thresh_image, ULcoord, cropULcoord, cropDim, resolution);
+%     [cropDim] = get_cropDim(cropULcoord, cropLRcoord, resolution);
+%     [thresh_crop_raw] = crop_image(thresh_image, ULcoord, cropULcoord, cropDim, resolution);
     thresh_crop = imadjust(thresh_crop_raw, stretchlim(thresh_crop_raw), [0 1], 1);
     [thresh] = get_threshold(thresh_crop);
     [crop_close, crop_edge] = find_shoreline(thresh_crop, thresh);
