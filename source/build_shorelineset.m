@@ -69,6 +69,7 @@ function [] = build_shorelineset()
     save('/home/andrew/Dropbox/yellow_river/data/shorelines/deltaLLcoord.mat', 'deltaLLcoord')
 end
 
+
 function [sortidx, meta_sort] = get_sortorder(folders, countfolders, directory)
     % sort the folders for processing in order,
     % this is needed for making a movie while processing if desired
@@ -95,6 +96,7 @@ function [sortidx, meta_sort] = get_sortorder(folders, countfolders, directory)
     [meta_sort] = meta(sortidx);
 end
 
+
 function  [fig] = make_plot(thresh_img, shoreline, i, meta)
     fig = figure();
     imshow(thresh_img)
@@ -103,6 +105,7 @@ function  [fig] = make_plot(thresh_img, shoreline, i, meta)
     title(datestr(meta.date));
     drawnow
 end
+
 
 function [shoreline, thresh_crop] = process(thresh_image,  ULcoord, cropULcoord, cropLRcoord, resolution)
     [cropDim] =  get_cropDim(cropULcoord, cropLRcoord, resolution);
@@ -114,16 +117,19 @@ function [shoreline, thresh_crop] = process(thresh_image,  ULcoord, cropULcoord,
     shoreline = horzcat(col, row);
 end
 
+
 function [cropDim] = get_cropDim(ULcoord, LRcoord, res)
     xDim = (LRcoord(1) - ULcoord(1)) / res; % x
     yDim = (ULcoord(2) - LRcoord(2)) / res; % y
     cropDim = [xDim yDim];
 end
 
+
 function [crop_img] = crop_image(image, ULcoord, cropULcoord, cropDim, resolution)
     ULidx = [(cropULcoord(1)-ULcoord(1)), (ULcoord(2)-cropULcoord(2))] ./ resolution; % WILL NOT WORK BECAUSE SPACING CHANGES???
     crop_img = imcrop(image, [ULidx(1) ULidx(2) cropDim(1) cropDim(2)]);
 end
+
 
 function [img_close, img_edge] = find_shoreline(img, thresh)
     % main shoreline extraction method descibed in Moodie et al.
@@ -175,7 +181,17 @@ function [img_close, img_edge] = find_shoreline(img, thresh)
         title(name)
 end
 
+
 function [bandset] = set_bandset(mission)
+    %set_bandset gives the bands to use for a given mission
+    % 
+    % [bandset] = set_bandset(mission)
+    % inputs:
+    %    mission: 'LANDSAT_X' where X is the number. This should be
+    %    stripped directly from the metadata
+    % outputs:
+    %    bandset: the set to use in the code later, 4 character string, [thresh, R, G, B]
+    
     switch mission
         case {'LANDSAT_1', 'LANDSAT_2', 'LANDSAT_3'}
             bandset = ['7' '6' '5' '4'];
@@ -186,8 +202,9 @@ function [bandset] = set_bandset(mission)
         case 'LANDSAT_8'
             bandset = ['7' '4' '3' '2'];
     end
-%     bandset = ['4' '4' '3' '2'];
+    
 end
+
 
 function [meta] = get_metadata(fidmetadata)
     
@@ -219,6 +236,7 @@ function [meta] = get_metadata(fidmetadata)
 
 end
 
+
 function [value] = strip_from_meta(metadata, keystring, valuetype)
     %strip_from_meta strips out the value from metadata for a given string
     %
@@ -249,6 +267,7 @@ function [value] = strip_from_meta(metadata, keystring, valuetype)
     end
 
 end
+
 
 function [thresh] = get_threshold(img)
     img = im2double(img);
