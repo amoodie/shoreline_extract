@@ -57,14 +57,12 @@ function [] = build_shorelineset()
         
         % threshold the image to a binary
         thresh_crop_adj = imadjust(thresh_crop, stretchlim(thresh_crop), [0 1], 1); % increase image contrast
-        [thresh_val] = get_threshold(thresh_crop_adj);
-        
-        %[shoreline_idx, thresh_crop] = process(thresh_img, meta.ULcoord, deltaULcoord, deltaLRcoord, meta.res);       
+        [thresh_val] = get_threshold(thresh_crop_adj); % determine the threshold value to use in binarization
         
         % find the shoreline
-        [crop_close, crop_edge] = find_shoreline(thresh_crop, thresh_val);
+        [crop_close, crop_edge] = find_shoreline(thresh_crop_adj, thresh_val); % convert to binary and identify delta edge
         
-        % concatenate into shoreline
+        % concatenate edge into shoreline
         [row, col] = find(crop_edge);
         shoreline = horzcat(col, row);
         
@@ -309,3 +307,5 @@ function [thresh] = get_threshold(img)
     xint = (-1*yint)/m;
     thresh = xint;
 end
+
+
