@@ -251,28 +251,7 @@ function [subset] = get_subsets(data, mask)
     end
 end
 
-function [line] = get_ordered(pointlist)
-    used = false(size(pointlist, 1), 1);
-    cnt = 1;
-    last = cnt;
-    used(last) = true;
-    line(cnt, :) = pointlist(cnt, :);
-    lastdist = 0;
-    while lastdist <= 60;
-        used(last) = true;
-        
-        distances = sqrt(((pointlist(last, 1) - pointlist(:, 1)).^2 + (pointlist(last, 2) - pointlist(:, 2)).^2));
-        distances(used) = Inf;
-        [lastdist, last] = min(distances);
-        
-        line(cnt+1, :) = pointlist(last, :);
-        cnt = cnt + 1;
-        if cnt > 15000
-            error
-        end
-    end
-    line = {line(1:end-1, :)};
-end
+
 
 function [fig] = all_shorelines(manu, auto, deltaLLcoord, deltaCROPLLcoord, mask, fig)
     all.data = vertcat(manu.data, auto.data);
