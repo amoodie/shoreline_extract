@@ -40,10 +40,17 @@ function explore_shorelineset()
         [data(i).lobe] = get_subset(data(i).shoreline, qing.xy); % subset of shoreline only in lobe area
                 
         % calculate the mean radius and intersection
-        [data(i).radius] = get_radius(data(i), deltaLLcoord); % radius of the entire delta
-        [data(i).qingint] = get_intersection(data(i), qing); % intersection with Qingshuigou
+        [data(i).radius] = get_radius(data(i).shoreline, deltaLLcoord); % radius of the entire delta
+        [data(i).qingint] = get_intersection(data(i).lobe, qing.xy, data(i).meta.res); % intersection with Qingshuigou
     
     end
+    
+    % demonstration of it
+%     figure()
+%     plot(data(i).shoreline(:,1), data(i).shoreline(:,2), 'k.')
+%     hold on
+%     plot(qing.xy(:,1), qing.xy(:,2), 'g.')
+%     plot(data(i).qingint.coords(1), data(i).qingint.coords(2), 'r*')
     
     
 %     % make tables
@@ -94,20 +101,20 @@ function explore_shorelineset()
     save('./shorelines/meandeltarad_out.mat', 'preAC2')
 end
 
-function [radius] = get_radius(data, deltaLLcoord)
+function [radius] = get_radius(shoreline, deltaLLcoord)
     %get_radius returns a radius object
     %
     %
     
     % initialize
-    npts = size(data.shoreline, 1);
+    npts = size(shoreline, 1);
     obs = NaN(npts, 1);
     
     % loop through all the points along the shoreline
     for i = 1:npts
         % calculate distance from apex to point
-        xdiff = data.shoreline(i, 1) - deltaLLcoord(1);
-        ydiff = data.shoreline(i, 2) - deltaLLcoord(2);
+        xdiff = shoreline(i, 1) - deltaLLcoord(1);
+        ydiff = shoreline(i, 2) - deltaLLcoord(2);
         obs(i) = sqrt(xdiff^2 + ydiff^2);
     end
     
@@ -118,44 +125,33 @@ function [radius] = get_radius(data, deltaLLcoord)
     
 end
 
-function [intersection] = get_intersection(data, line)
-    Nobs = size(data, 1);
-    intersection = cell(size(data, 1), 4);
-    for i = 1:Nobs
-        if cell2mat(data(i, 1)) < datenum('0/01/1972'); err = 10000; else err = 2000; end
-        if ~isempty(data{i, 2})
-            clear intline
-            % reduce the channelline data to only those within x AND y range of the shoreline
-            keepx = and(channelline(:, 1) <= max(data{i, 2}(:, 1)), channelline(:, 1) >= min(data{i, 2}(:, 1)));
-            keepy = and(channelline(:, 2) <= max(data{i, 2}(:, 2)), channelline(:, 2) >= min(data{i, 2}(:, 2)));
-            keep = and(keepx, keepy);
-            intline(:, 1) = channelline(keep, 1); % cut the dataset down to only below upperlim
-            intline(:, 2) = channelline(keep, 2); % cut the dataset down
-            % reduce the shorline data to only those within x AND y range of the new intline
-            % NEED TO WRITE THIS CODE!
-            Nintpts = size(intline, 1);
-            mindists = NaN(Nintpts, 1);
-            for j = 1:Nintpts
-                distances = sqrt(((data{i, 2}(:, 1) - intline(j, 1)).^2 + (data{i, 2}(:, 2) - intline(j, 2)).^2));
-                [mindists(j), ~] = min(distances);
-            end
-            if ~isempty(intline)
-                [~, intidx] = min(mindists);
-                intcoords = intline(intidx, :);
-                intdist = alongintline(intidx);
-            else
-                intcoords = [NaN NaN];
-                intdist = NaN;
-            end
-        else
-            intcoords = [NaN NaN];
-            intdist = NaN;
-        end
-        intersection(i, 1) = num2cell(data{i, 1});
-        intersection(i, 2) = {intcoords};
-        intersection(i, 3) = {intdist};
-        intersection(i, 4) = {sqrt(err^2 + err^2)};
+function [intersection] = get_intersection(shoreline, line, res)
+    %get_intersection returns an intersection object
+    %
+
+    npts = size(shoreline, 1);
+%     intersection = cell(size(shoreline, 1), 4);
+    % loop through every point in shoreline to determine if it intersects with line
+    for i = 1:npts
+        % calculate the distance from this shoreline pt to every point in line
+        distances = sqrt(((shoreline(i, 1) - line(:, 1)).^2 + (shoreline(i, 2) - line(:, 2)).^2));
+        
+        % record the minimum distance for that shoreline point
+        [mindists(i)] = min(distances);
+        
     end
+    % find the minimum distance of any of the points
+    [mindist, mindistidx] = nanmin(mindists);
+    
+    % validate it is an intersection based on the grid spacing of the raster
+    if sqrt(res^2) < mindist
+        warning('intersection identified, but may not be real, returning NaN')
+        mindist = NaN;
+    end
+
+    intersection.dist = mindist;
+    intersection.coords = shoreline(mindistidx, :);
+                
 end
 
 function [ratemdl] = make_ratemdl(table) 
