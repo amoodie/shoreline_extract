@@ -8,9 +8,23 @@ function [] = build_shorelineset()
     clear variables; 
     close all;
 
+    %%%% SELECT THE RUNTIME PARAMETERS %%%%
+    %
     % directory of the data folder (relative or absolute path to the folder)
     %     alternatively use cd <path to location> to execute elsewhere
     directory = '../data';
+    %
+    % do you want to make and save an RGB image too?
+    make_RGB = true;
+    %
+    % what are the coordinates for cropping to the delta extent
+    deltaULcoord = [633497, 4236964]; 
+    deltacropDim = [3975, 3790];
+    deltaLRcoord = [713380, 4162227];
+    deltaLLcoord = [deltaULcoord(1), deltaLRcoord(2)]; % apex of the delta for cropping
+    %
+    %%%% %%%% %%%% %%%% %%%% %%%% %%%% %%%%
+    
 
     % create the list of folders to loop through
     listing = dir(directory); % all items in directory
@@ -25,10 +39,7 @@ function [] = build_shorelineset()
     clouds = NaN(countfolders,1);       % cloud % of images
     outputs = NaN(countfolders,8);      % output dataset
     
-    deltaULcoord = [633497, 4236964]; 
-    deltacropDim = [3975, 3790];
-    deltaLRcoord = [713380, 4162227];
-    deltaLLcoord = [deltaULcoord(1), deltaLRcoord(2)]; % apex of the delta for cropping
+
 
     % loop through all the folder first to generate some metadata for sorting
     % sort is important for making a movie
@@ -60,7 +71,7 @@ function [] = build_shorelineset()
         [thresh_val] = get_threshold(thresh_crop_adj); % determine the threshold value to use in binarization
         
         % find the shoreline
-        [crop_close, crop_edge] = find_shoreline(thresh_crop_adj, thresh_val); % convert to binary and identify delta edge
+        [crop_edge] = find_shoreline(thresh_crop_adj, thresh_val); % convert to binary and identify delta edge
         
         % concatenate edge into shoreline points
         [row, col] = find(crop_edge); % all points on shoreline
@@ -75,9 +86,15 @@ function [] = build_shorelineset()
         [shoreline] = get_ordered(shoreline_pts);
         
         % make a RGB image
+        R_imgname = strcat(meta.name, '_B', bandset(2), '.TIF');
+        R_img = imread(char(fullfile(meta.imagefolder, R_imgname)));
+        G_imgname = strcat(meta.name, '_B', bandset(3), '.TIF');
+        G_img = imread(char(fullfile(meta.imagefolder, G_imgname)));
+        B_imgname = strcat(meta.name, '_B', bandset(4), '.TIF');
+        B_img = imread(char(fullfile(meta.imagefolder, B_imgname)));
+        RGB_img = cat(3, R_img, G_img, B_img);
+        if 
         
-        
-       
         
         [fig] = make_plot(thresh_crop, shoreline_idx, i, meta);
         savename = sprintf('./fig_output/fig%03d.png', i);
@@ -158,7 +175,7 @@ function [crop_img] = crop_image(image, ULcoord, cropULcoord, cropDim, resolutio
 end
 
 
-function [img_close, img_edge] = find_shoreline(img, thresh)
+function [img_edge] = find_shoreline(img, thresh)
     % main shoreline extraction method descibed in Moodie et al.
 
     img_bw = im2bw(img, thresh);                        % threshold image
