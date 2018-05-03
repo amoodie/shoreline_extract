@@ -20,29 +20,37 @@ function explore_shorelineset()
     [data] = load_data(meta.directory);
 %     [auto.data] = load_data('auto');
 
-    % STOPPED HERE!!
-    T = load('./shorelines/deltaLLcoord.mat');
-    deltaCROPLLcoord = T.deltaLLcoord;
-    deltaLLcoord = [611066, 4149751]; % this is Lijin
+%     T = load('./shorelines/deltaLLcoord.mat');
+%     deltaCROPLLcoord = T.deltaLLcoord; % I have no idea what this is for
+    deltaLLcoord = [611066, 4149751]; % this is Lijin, used for calculating the delta radius
     
-    % make subsets
-    [lobe_mask] = make_mask([6.77e5 4.177e6]);
-    [manu.lobe] = get_subsets(manu.data, lobe_mask);
-    [auto.lobe] = get_subsets(auto.data, lobe_mask);
+    % prepare the channel centerline
+    %    this same routine could be repeated for multiple lines
+    linename = fullfile('..', 'data', 'qinshuigou_channelline.csv');
+    qing.raw = csvread(filename, 1, 0); % read xy points from csv file 
+    qing.between = [0 sqrt((qing.raw(2:end, 1) - qing.raw(1:end-1, 1)).^2 + ...
+        (qing.raw(2:end, 2) - qing.raw(1:end-1, 2)).^2)'];
+    qing.along = cumsum(qing.between);
+   
     
-    % maths
-    obsN = size(manu, 1) + size(auto, 1); % number of total observations
-    [manu.deltarad] = get_radius(manu.data, deltaLLcoord);
-    [auto.deltarad] = get_radius(auto.data, deltaLLcoord);
-    [manu.loberad] = get_radius(manu.lobe, lobe_mask.acoord);
-    [auto.loberad] = get_radius(auto.lobe, lobe_mask.acoord);
-    [manu.qingint] = get_intersection(manu.lobe, 'AC1'); % intersection with Qingshuigou
-    [auto.qingint] = get_intersection(auto.lobe, 'AC1'); 
-    [manu.Q8int] = get_intersection(manu.lobe, 'AC2'); % intersection with Q8 lobe
-    [auto.Q8int] = get_intersection(auto.lobe, 'AC2');
-    [manu.modint] = get_intersection(manu.lobe, 'modern'); % intersection with modern lobe
-    [auto.modint] = get_intersection(auto.lobe, 'modern');
+    % loop through all the shorelines
+    for i = 1:size(data,1)
+        % make subset to reduce the size of the data to check for intersection
+            %     [lobe_mask] = make_mask([6.77e5 4.177e6]);
+            %     [manu.lobe] = get_subsets(manu.data, lobe_mask);
+            %     [auto.lobe] = get_subsets(auto.data, lobe_mask);
+                
+        % calculate the mean radius and intersection
+        [data(i).radius] = get_radius(data(i), deltaLLcoord);
+        [data(i).qingint] = get_intersection(data(i), qing); % intersection with Qingshuigou
+        [auto.qingint] = get_intersection(auto.lobe, 'AC1'); 
+        [manu.Q8int] = get_intersection(manu.lobe, 'AC2'); % intersection with Q8 lobe
+        [auto.Q8int] = get_intersection(auto.lobe, 'AC2');
+        [manu.modint] = get_intersection(manu.lobe, 'modern'); % intersection with modern lobe
+        [auto.modint] = get_intersection(auto.lobe, 'modern');
+
     
+    end
     % make tables
     manu.tab = make_table(manu);
     auto.tab = make_table(auto);
@@ -169,21 +177,7 @@ function [rad] = get_radius(data, deltaLLcoord)
     end
 end
 
-function [intersection] = get_intersection(data, set)
-    switch set
-        case 'AC1'
-            % define the line at some grid interval
-            filename = '../../maps/intersection_channelline.csv';
-            channelline = csvread(filename, 1, 0);
-        case 'AC2'
-            filename = '../../maps/intersection_AC2.csv';
-            channelline = csvread(filename, 1, 0);
-        case 'modern'
-            filename = '../../maps/intersection_2016.csv';
-            channelline = csvread(filename, 1, 0);
-    end
-    betweenintline = [0 sqrt((channelline(2:end, 1) - channelline(1:end-1, 1)).^2 + (channelline(2:end, 2) - channelline(1:end-1, 2)).^2)'];
-    alongintline = cumsum(betweenintline);
+function [intersection] = get_intersection(data, line)
     Nobs = size(data, 1);
     intersection = cell(size(data, 1), 4);
     for i = 1:Nobs
