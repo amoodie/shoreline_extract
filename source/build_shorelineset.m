@@ -20,9 +20,6 @@ function [] = build_shorelineset()
     % do you want to make and save an RGB image too?
     make_RGB = true;
     %
-    % should we spruce up the RGB image a bit for display? (contrast, balance)
-    make_RGB_pretty = true;
-    %
     % what are the coordinates for cropping to the delta extent
     deltaULcoord = [633497, 4236964]; 
     deltacropDim = [3975, 3790];
@@ -69,8 +66,8 @@ function [] = build_shorelineset()
         % crop the image
         %    this section is Yellow River delta specific and would need to
         %    be rewritten for any other use.
-        [cropDim] = get_cropDim(deltaULcoord, deltaLRcoord, meta.res); % calculate the dimensions to crop at
-        [thresh_crop] = crop_image(thresh_img, meta.ULcoord, deltaULcoord, cropDim, meta.res); % do the crop
+        [meta.cropDim] = get_cropDim(deltaULcoord, deltaLRcoord, meta.res); % calculate the dimensions to crop at
+        [thresh_crop] = crop_image(thresh_img, meta.ULcoord, deltaULcoord, meta.cropDim, meta.res); % do the crop
         
         % threshold the image to a binary
         thresh_crop_adj = imadjust(thresh_crop, stretchlim(thresh_crop), [0 1], 1); % increase image contrast
@@ -92,18 +89,11 @@ function [] = build_shorelineset()
         [shoreline] = get_ordered(shoreline_pts);
         
         % make a RGB image
-        R_imgname = strcat(meta.name, '_B', bandset(2), '.TIF');
-        R_img = imread(char(fullfile(meta.imagefolder, R_imgname)));
-        G_imgname = strcat(meta.name, '_B', bandset(3), '.TIF');
-        G_img = imread(char(fullfile(meta.imagefolder, G_imgname)));
-        B_imgname = strcat(meta.name, '_B', bandset(4), '.TIF');
-        B_img = imread(char(fullfile(meta.imagefolder, B_imgname)));
-        RGB_img = cat(3, R_img, G_img, B_img);
         if make_RGB
-            if make_RGB_pretty
-                figure()
-                imshow(RGB_img)
-            end
+            R_imgname = strcat(meta.name, '_B', bandset(2), '.TIF');
+            G_imgname = strcat(meta.name, '_B', bandset(3), '.TIF');
+            B_imgname = strcat(meta.name, '_B', bandset(4), '.TIF');
+            plot_RGB(R_imgname, G_imgname, B_imgname, meta.cropDim)
         end
         
         
@@ -346,3 +336,18 @@ function [line] = get_ordered(pointlist)
     end
     line = line(1:end-1, :);
 end
+
+
+function plot_RGB(R_imgname, G_imgname, B_imgname, cropDim)
+    %plot_RGB manipulates and plots the RGB image
+    R_img = imread(char(fullfile(meta.imagefolder, R_imgname)));
+    G_img = imread(char(fullfile(meta.imagefolder, G_imgname)));
+    B_img = imread(char(fullfile(meta.imagefolder, B_imgname)));
+    
+    RGB_img = cat(3, R_img, G_img, B_img);
+    if make_RGB_pretty
+        figure()
+        imshow(RGB_img)
+    end
+end
+
