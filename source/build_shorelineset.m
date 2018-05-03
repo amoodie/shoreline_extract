@@ -88,29 +88,34 @@ function [] = build_shorelineset()
         [shoreline] = get_ordered(shoreline_pts);
         
         % make a RGB image
-        if make_RGB
-            R_imgname = strcat(meta.name, '_B', bandset(2), '.TIF');
-            G_imgname = strcat(meta.name, '_B', bandset(3), '.TIF');
-            B_imgname = strcat(meta.name, '_B', bandset(4), '.TIF');
+        if meta.make_RGB
+            R_imgname = strcat(meta.name, '_B', meta.bandset(2), '.TIF');
+            G_imgname = strcat(meta.name, '_B', meta.bandset(3), '.TIF');
+            B_imgname = strcat(meta.name, '_B', meta.bandset(4), '.TIF');
             plot_RGB(R_imgname, G_imgname, B_imgname, meta)
         end
         
         
-        [fig] = make_plot(thresh_crop, shoreline_idx, i, meta);
-        savename = sprintf('./fig_output/fig%03d.png', i);
-        pause(0.2)
-        print(fig, savename, '-dpng', '-r200', '-opengl') % save file
-        close(fig)
+%         [fig] = make_plot(thresh_crop, shoreline_idx, i, meta);
+%         savename = sprintf('./fig_output/fig%03d.png', i);
+%         pause(0.2)
+%         print(fig, savename, '-dpng', '-r200', '-opengl') % save file
+%         close(fig)
         
-        outputname = strcat('/home/andrew/Dropbox/yellow_river/data/shorelines/auto_shoreline/shoreline_', datestr(meta.date, 'YYYY-mm-dd'), '.csv');
+        % write out shoreline data to a csv
+        outputname = fullfile( 'output', strcat('shoreline_', datestr(meta.date, 'YYYY-mm-dd'), '.csv') );
         fid = fopen(outputname, 'w');
         fprintf(fid, 'X, Y\n');
         fclose(fid);
         dlmwrite(outputname, ...
             shoreline, '-append', 'precision', '%f');
+    
+        % write out metadata to .mat file
+        save(fullfile( 'output', strcat('meta_', datestr(meta.date, 'YYYY-mm-dd'), '.mat') ), 'meta')
+        
+        % end of loop
     end
     
-    save('/home/andrew/Dropbox/yellow_river/data/shorelines/deltaLLcoord.mat', 'deltaLLcoord')
 end
 
 
@@ -337,16 +342,22 @@ function [line] = get_ordered(pointlist)
 end
 
 
-function plot_RGB(R_imgname, G_imgname, B_imgname, cropDim)
+function plot_RGB(R_imgname, G_imgname, B_imgname, meta)
     %plot_RGB manipulates and plots the RGB image
-    R_img = imread(char(fullfile(meta.imagefolder, R_imgname)));
-    G_img = imread(char(fullfile(meta.imagefolder, G_imgname)));
-    B_img = imread(char(fullfile(meta.imagefolder, B_imgname)));
+    [R_img] = imread(char(fullfile(meta.imagefolder, R_imgname))); % open red image
+    [G_img] = imread(char(fullfile(meta.imagefolder, G_imgname)));
+    [B_img] = imread(char(fullfile(meta.imagefolder, B_imgname)));
+    [R_crop] = crop_image(R_img, meta.ULcoord, meta.deltaULcoord, meta.cropDim, meta.res); % do the crop
+    [G_crop] = crop_image(G_img, meta.ULcoord, meta.deltaULcoord, meta.cropDim, meta.res); 
+    [B_crop] = crop_image(B_img, meta.ULcoord, meta.deltaULcoord, meta.cropDim, meta.res); 
+    clip = [0.2, 0.8];
+    [R_adj] = imadjust(R_crop, stretchlim(R_crop, clip), [0 1], 1); % increase image contrast
+    [G_adj] = imadjust(G_crop, stretchlim(G_crop, clip), [0 1], 1);
+    [B_adj] = imadjust(B_crop, stretchlim(B_crop, clip), [0 1], 1);
+    RGB = cat(3, R_crop, G_crop, B_crop);
+        
+    figure()
+    imshow(RGB)
     
-    RGB_img = cat(3, R_img, G_img, B_img);
-    if make_RGB_pretty
-        figure()
-        imshow(RGB_img)
-    end
 end
 
