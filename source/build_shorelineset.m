@@ -12,7 +12,7 @@ function [] = build_shorelineset()
     %
     % directory of the data folder (relative or absolute path to the folder)
     %     alternatively use cd <path to location> to execute elsewhere
-    meta.directory = '../data';
+    meta.directory = fullfile('..', 'data');
     %
     % do you want to make and save the processing image of the thresholding
     meta.make_thresh = true;
@@ -95,7 +95,7 @@ function [] = build_shorelineset()
             plot_RGB(R_imgname, G_imgname, B_imgname, meta)
         end
         
-        
+        % make a movie?
 %         [fig] = make_plot(thresh_crop, shoreline_idx, i, meta);
 %         savename = sprintf('./fig_output/fig%03d.png', i);
 %         pause(0.2)
@@ -103,15 +103,15 @@ function [] = build_shorelineset()
 %         close(fig)
         
         % write out shoreline data to a csv
-        outputname = fullfile( 'output', strcat('shoreline_', datestr(meta.date, 'YYYY-mm-dd'), '.csv') );
+        outputname = fullfile( '..', 'output', strcat('shoreline_', datestr(meta.date, 'YYYY-mm-dd'), '.csv') );
         fid = fopen(outputname, 'w');
         fprintf(fid, 'X, Y\n');
         fclose(fid);
         dlmwrite(outputname, ...
             shoreline, '-append', 'precision', '%f');
-    
+        
         % write out metadata to .mat file
-        save(fullfile( 'output', strcat('meta_', datestr(meta.date, 'YYYY-mm-dd'), '.mat') ), 'meta')
+        save(fullfile( '..', 'output', strcat('meta_', datestr(meta.date, 'YYYY-mm-dd'), '.mat') ), 'meta')
         
         % end of loop
     end
