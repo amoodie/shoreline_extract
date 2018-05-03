@@ -25,43 +25,38 @@ function explore_shorelineset()
     deltaLLcoord = [611066, 4149751]; % this is Lijin, used for calculating the delta radius
     
     % prepare the channel centerline
-    %    this same routine could be repeated for multiple lines
+    %    this below routine could be repeated for multiple lines and then
+    %    the multiple lines could be processed in the loop too
     linename = fullfile('..', 'data', 'qinshuigou_channelline.csv');
-    qing.raw = csvread(filename, 1, 0); % read xy points from csv file 
-    qing.between = [0 sqrt((qing.raw(2:end, 1) - qing.raw(1:end-1, 1)).^2 + ...
-        (qing.raw(2:end, 2) - qing.raw(1:end-1, 2)).^2)'];
+    qing.raw = csvread(linename, 1, 0); % read xy points from csv file 
+    qing.xy = [qing.raw(:,1), qing.raw(:,2)];
+    qing.between = [0 sqrt((qing.xy(2:end, 1) - qing.xy(1:end-1, 1)).^2 + ...
+        (qing.xy(2:end, 2) - qing.xy(1:end-1, 2)).^2)'];
     qing.along = cumsum(qing.between);
    
-    
     % loop through all the shorelines
     for i = 1:size(data,1)
         % make subset to reduce the size of the data to check for intersection
-            %     [lobe_mask] = make_mask([6.77e5 4.177e6]);
-            %     [manu.lobe] = get_subsets(manu.data, lobe_mask);
-            %     [auto.lobe] = get_subsets(auto.data, lobe_mask);
+        [data(i).lobe] = get_subset(data(i).shoreline, qing.xy); % subset of shoreline only in lobe area
                 
         % calculate the mean radius and intersection
-        [data(i).radius] = get_radius(data(i), deltaLLcoord);
+        [data(i).radius] = get_radius(data(i), deltaLLcoord); % radius of the entire delta
         [data(i).qingint] = get_intersection(data(i), qing); % intersection with Qingshuigou
-        [auto.qingint] = get_intersection(auto.lobe, 'AC1'); 
-        [manu.Q8int] = get_intersection(manu.lobe, 'AC2'); % intersection with Q8 lobe
-        [auto.Q8int] = get_intersection(auto.lobe, 'AC2');
-        [manu.modint] = get_intersection(manu.lobe, 'modern'); % intersection with modern lobe
-        [auto.modint] = get_intersection(auto.lobe, 'modern');
-
     
     end
-    % make tables
-    manu.tab = make_table(manu);
-    auto.tab = make_table(auto);
-    all.tab = make_rangetable(manu, auto, [datenum('1850','YYYY'), datenum('2020','YYYY')]); % all data from all time
-    qing.tab = make_rangetable(manu, auto, [datenum('1976','YYYY'), datenum('07/31/1997','mm/dd/YYYY')]); % only data from qingshuigou lobe development
-    postqing.tab = make_rangetable(manu, auto, [datenum('07/31/1997','mm/dd/YYYY'), datenum('2020', 'YYYY')]); % only data from *after* qingshuigou lobe development
-    preQ8.tab = make_rangetable(manu, auto, [datenum('1850','YYYY'), datenum('1997','YYYY')]); % all data before abandonment of qingshuigou
-    Q8.tab = make_rangetable(manu, auto, [datenum('07/31/1997','mm/dd/YYYY'), datenum('06/31/2007','mm/dd/YYYY')]); % only data from Q8 lobe development
-    mod.tab = make_rangetable(manu, auto, [datenum('06/31/2007','mm/dd/YYYY'), datenum('2020','YYYY')]); % only data from modern lobe development
     
-    % make models
+    
+%     % make tables
+%     manu.tab = make_table(manu);
+%     auto.tab = make_table(auto);
+%     all.tab = make_rangetable(manu, auto, [datenum('1850','YYYY'), datenum('2020','YYYY')]); % all data from all time
+%     qing.tab = make_rangetable(manu, auto, [datenum('1976','YYYY'), datenum('07/31/1997','mm/dd/YYYY')]); % only data from qingshuigou lobe development
+%     postqing.tab = make_rangetable(manu, auto, [datenum('07/31/1997','mm/dd/YYYY'), datenum('2020', 'YYYY')]); % only data from *after* qingshuigou lobe development
+%     preQ8.tab = make_rangetable(manu, auto, [datenum('1850','YYYY'), datenum('1997','YYYY')]); % all data before abandonment of qingshuigou
+%     Q8.tab = make_rangetable(manu, auto, [datenum('07/31/1997','mm/dd/YYYY'), datenum('06/31/2007','mm/dd/YYYY')]); % only data from Q8 lobe development
+%     mod.tab = make_rangetable(manu, auto, [datenum('06/31/2007','mm/dd/YYYY'), datenum('2020','YYYY')]); % only data from modern lobe development
+%     
+    % make rate models
     % entire delta radius model
     preQ8.deltamodel = fitlm(preQ8.tab, 'meandeltarad ~ date');
     preQ8.deltaeval.b = preQ8.deltamodel.Coefficients.Estimate(1);
@@ -73,16 +68,6 @@ function explore_shorelineset()
     preQ8.deltaeval.xs = linspace(min(preQ8.tab.date), max(preQ8.tab.date), 10);
     preQ8.deltaeval.ys = ((preQ8.deltaeval.m .* preQ8.deltaeval.xs) + preQ8.deltaeval.b);
     
-    % quingshuigou lobe radius model
-    qing.radmodel = fitlm(qing.tab, 'meanloberad ~ date');
-    qing.radeval.b = qing.radmodel.Coefficients.Estimate(1);
-    qing.radeval.m = qing.radmodel.Coefficients.Estimate(2);
-    qing.radeval.CI = coefCI(qing.radmodel);
-    qing.radeval.err = mean(abs(qing.radeval.CI(2,:)-qing.radeval.m));
-    qing.radeval.r2 = qing.radmodel.Rsquared.ordinary;
-    qing.radeval.xs = linspace(min(qing.tab.date), max(qing.tab.date), 10);
-    qing.radeval.ys = ((qing.radeval.m .* qing.radeval.xs) + qing.radeval.b);
-    
     % quingshuigou lobe progradation rate model
     qing.intmodel = fitlm(qing.tab, 'qingint ~ date');
     qing.inteval.b = qing.intmodel.Coefficients.Estimate(1);
@@ -92,46 +77,6 @@ function explore_shorelineset()
     qing.inteval.r2 = qing.intmodel.Rsquared.ordinary;
     qing.inteval.xs = linspace(min(qing.tab.date), max(qing.tab.date), 10);
     qing.inteval.ys = ((qing.inteval.m .* qing.inteval.xs) + qing.inteval.b);
-    
-    % qingshuigou lobe retreat after abandonment model
-    qing.retreatmodel = fitlm(postqing.tab, 'qingint ~ date');
-    qing.retreateval.b = qing.retreatmodel.Coefficients.Estimate(1);
-    qing.retreateval.m = qing.retreatmodel.Coefficients.Estimate(2);
-    qing.retreateval.CI = coefCI(qing.retreatmodel);
-    qing.retreateval.err = mean(abs(qing.retreateval.CI(2,:)-qing.retreateval.m));
-    qing.retreateval.r2 = qing.retreatmodel.Rsquared.ordinary;
-    qing.retreateval.xs = linspace(min(postqing.tab.date), max(postqing.tab.date), 10);
-    qing.retreateval.ys = ((qing.retreateval.m .* qing.retreateval.xs) + qing.retreateval.b);
-    
-    % Q8 lobe progradation model
-    Q8.intmodel = fitlm(Q8.tab, 'Q8int ~ date');
-    Q8.inteval.b = Q8.intmodel.Coefficients.Estimate(1);
-    Q8.inteval.m = Q8.intmodel.Coefficients.Estimate(2);
-    Q8.inteval.CI = coefCI(Q8.intmodel);
-    Q8.inteval.err = mean(abs(Q8.inteval.CI(2,:)-Q8.inteval.m));
-    Q8.inteval.r2 = Q8.intmodel.Rsquared.ordinary;
-    Q8.inteval.xs = linspace(min(Q8.tab.date), max(Q8.tab.date), 10);
-    Q8.inteval.ys = ((Q8.inteval.m .* Q8.inteval.xs) + Q8.inteval.b);
-    
-    % Q8 lobe retreat after abandonment model
-    Q8.retreatmodel = fitlm(mod.tab, 'Q8int ~ date');
-    Q8.retreateval.b = Q8.retreatmodel.Coefficients.Estimate(1);
-    Q8.retreateval.m = Q8.retreatmodel.Coefficients.Estimate(2);
-    Q8.retreateval.CI = coefCI(Q8.retreatmodel);
-    Q8.retreateval.err = mean(abs(Q8.retreateval.CI(2,:)-Q8.retreateval.m));
-    Q8.retreateval.r2 = Q8.retreatmodel.Rsquared.ordinary;
-    Q8.retreateval.xs = linspace(min(mod.tab.date), max(mod.tab.date), 10);
-    Q8.retreateval.ys = ((Q8.retreateval.m .* Q8.retreateval.xs) + Q8.retreateval.b);
-    
-    % modern lobe progradation model
-    mod.intmodel = fitlm(mod.tab, 'modint ~ date');
-    mod.inteval.b = mod.intmodel.Coefficients.Estimate(1);
-    mod.inteval.m = mod.intmodel.Coefficients.Estimate(2);
-    mod.inteval.CI = coefCI(mod.intmodel);
-    mod.inteval.err = mean(abs(mod.inteval.CI(2,:)-mod.inteval.m));
-    mod.inteval.r2 = mod.intmodel.Rsquared.ordinary;
-    mod.inteval.xs = linspace(min(mod.tab.date), max(mod.tab.date), 10);
-    mod.inteval.ys = ((mod.inteval.m .* mod.inteval.xs) + mod.inteval.b);
     
     % make plots
     fig_alldata = figure('Visible', 'off');
@@ -149,32 +94,28 @@ function explore_shorelineset()
     save('./shorelines/meandeltarad_out.mat', 'preAC2')
 end
 
-function [rad] = get_radius(data, deltaLLcoord)
-    Nobs = size(data, 1);
-    rad = cell(Nobs, 4);
-    for i = 1:Nobs
-        pts = data{i, 2};
-        Npts = size(pts, 1);
-        if cell2mat(data(i, 1)) < datenum('0/01/1972'); err = 10000; else err = 2000; end
-        for j = 1:Npts
-            xdiff = pts(j, 1) - deltaLLcoord(1);
-            ydiff = pts(j, 2) - deltaLLcoord(2);
-            radobs(j) = sqrt(xdiff^2 + ydiff^2);
-        end
-        if ~exist('radobs','var')
-            radobs = NaN;
-        end
-        rad(i, 1) = num2cell(data{i, 1});
-        rad(i, 2) = {radobs};
-        rad(i, 3) = {mean(radobs)};
-%         rad(i, 4) = {sqrt(  sum( repmat(err/sqrt(Npts), 1, Npts))  )}; % error on the mean
-        rad(i, 4) = {err};
-%         try
-%             rad(i, 4) = {mean(bootstrp(35, @mean, radobs))};
-%         catch
-%             rad(i, 4) = {NaN};
-%         end
+function [radius] = get_radius(data, deltaLLcoord)
+    %get_radius returns a radius object
+    %
+    %
+    
+    % initialize
+    npts = size(data.shoreline, 1);
+    obs = NaN(npts, 1);
+    
+    % loop through all the points along the shoreline
+    for i = 1:npts
+        % calculate distance from apex to point
+        xdiff = data.shoreline(i, 1) - deltaLLcoord(1);
+        ydiff = data.shoreline(i, 2) - deltaLLcoord(2);
+        obs(i) = sqrt(xdiff^2 + ydiff^2);
     end
+    
+    % calculate and store data into object
+    radius.obs = obs;
+    radius.mean = nanmean(obs);
+    radius.std = nanstd(obs);
+    
 end
 
 function [intersection] = get_intersection(data, line)
@@ -216,6 +157,19 @@ function [intersection] = get_intersection(data, line)
         intersection(i, 4) = {sqrt(err^2 + err^2)};
     end
 end
+
+function [ratemdl] = make_ratemdl(table) 
+    preQ8.deltamodel = fitlm(preQ8.tab, 'meandeltarad ~ date');
+    preQ8.deltaeval.b = preQ8.deltamodel.Coefficients.Estimate(1);
+    preQ8.deltaeval.m = preQ8.deltamodel.Coefficients.Estimate(2);
+    preQ8.deltaeval.bserr = bootstrp(35, @mean, preQ8.deltamodel.Residuals.Raw);
+    preQ8.deltaeval.CI = coefCI(preQ8.deltamodel);
+    preQ8.deltaeval.err = mean(abs(preQ8.deltaeval.CI(2,:)-preQ8.deltaeval.m));
+    preQ8.deltaeval.r2 = preQ8.deltamodel.Rsquared.ordinary;
+    preQ8.deltaeval.xs = linspace(min(preQ8.tab.date), max(preQ8.tab.date), 10);
+    preQ8.deltaeval.ys = ((preQ8.deltaeval.m .* preQ8.deltaeval.xs) + preQ8.deltaeval.b);
+end
+
 
 function [table] = make_table(data)
     datamat = horzcat( cell2mat(data.data(:,1)), cell2mat(data.deltarad(:,3)), cell2mat(data.deltarad(:,4)), ...
@@ -261,6 +215,23 @@ function [subset] = get_subsets(data, mask)
         subset(i, 1) = num2cell(data{i, 1});
         subset(i, 2) = {pts(logical(keeps), :)};
     end
+end
+
+function [subset] = get_subset(shoreline, line)
+    %get_subset finds the minimum number of points in data that could possibly intersect with line
+    %
+    % useful for reducing compute time in the intersection code
+    
+    % make logicals of what's beyond the line limits
+    trash_left = (shoreline(:,1) < min(line(:,1))); % left
+    trash_right = (shoreline(:,1) > max(line(:,1))); % right
+    trash_bottom = (shoreline(:,2) < min(line(:,2))); % bottom
+    trash_top = (shoreline(:,2) > max(line(:,2))); % top
+    
+    % retain what is never outside limits
+    keep = ~ or(  or(trash_left, trash_right), or(trash_bottom, trash_top)  );
+    subset = shoreline(keep, :); 
+    
 end
 
 
