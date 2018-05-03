@@ -62,16 +62,22 @@ function [] = build_shorelineset()
         % find the shoreline
         [crop_close, crop_edge] = find_shoreline(thresh_crop_adj, thresh_val); % convert to binary and identify delta edge
         
-        % concatenate edge into shoreline
-        [row, col] = find(crop_edge);
-        shoreline = horzcat(col, row);
+        % concatenate edge into shoreline points
+        [row, col] = find(crop_edge); % all points on shoreline
+        shoreline_pts = horzcat(col, row); % shoreline point list, index ordered in array
+        
+        % convert the shoreline pts from img coords to geo-coords
+        pivot_pt = max(shoreline_pts(:,2));
+        shoreline_pts(:, 1) = (shoreline_pts(:, 1).*meta.res) + repmat(deltaLLcoord(1), size(shoreline_pts, 1), 1);
+        shoreline_pts(:, 2) = ((pivot_pt - shoreline_pts(:, 2)).*meta.res) + repmat(deltaLLcoord(2), size(shoreline_pts, 1), 1);
+        
+        % sort the list into sequential shoreline trace
+        [shoreline] = get_ordered(shoreline_pts);
         
         % make a RGB image
         
         
-        ymax = max(shoreline_idx(:,2));
-        shoreline(:, 1) = (shoreline_idx(:, 1).*meta.res) + repmat(deltaLLcoord(1), size(shoreline_idx, 1), 1);
-        shoreline(:, 2) = ((ymax - shoreline_idx(:, 2)).*meta.res) + repmat(deltaLLcoord(2), size(shoreline_idx, 1), 1);
+       
         
         [fig] = make_plot(thresh_crop, shoreline_idx, i, meta);
         savename = sprintf('./fig_output/fig%03d.png', i);
@@ -167,7 +173,7 @@ function [img_close, img_edge] = find_shoreline(img, thresh)
     img_pad = padarray(img_rms3, [1 0], 1, 'post');     % add row to end
     img_pad = padarray(img_pad, [0 1], 1, 'pre');       % add col to front
     img_fill2 = imfill(img_pad, 'holes');               % fill it from the outside
-    img_unpad = img_fill2(1:end-1, 2:end);
+    img_unpad = img_fill2(1:end-1, 2:end);              % remove padding from outside
     img_fill3 = bwareafilt(img_unpad, 1, 'largest');    % retain only largest 
     img_edge = edge(img_fill3, 'sobel');                % find edge
     
@@ -233,7 +239,6 @@ function [meta] = get_metadata(fidmetadata, imagefolder)
     [metadata] = textscan(fidmetadata, '%s','delimiter', '\n');
     
     % strip out the desired info
-    
     % date aquired
     [date] = strip_from_meta(metadata, 'DATE_ACQUIRED', 'str');
     [meta.date] = datenum(date);
@@ -309,3 +314,25 @@ function [thresh] = get_threshold(img)
 end
 
 
+function [line] = get_ordered(pointlist)
+    used = false(size(pointlist, 1), 1);
+    cnt = 1;
+    last = cnt;
+    used(last) = true;
+    line(cnt, :) = pointlist(cnt, :);
+    lastdist = 0;
+    while lastdist <= 60;
+        used(last) = true;
+        
+        distances = sqrt(((pointlist(last, 1) - pointlist(:, 1)).^2 + (pointlist(last, 2) - pointlist(:, 2)).^2));
+        distances(used) = Inf;
+        [lastdist, last] = min(distances);
+        
+        line(cnt+1, :) = pointlist(last, :);
+        cnt = cnt + 1;
+        if cnt > 15000
+            error
+        end
+    end
+    line = line(1:end-1, :);
+end
