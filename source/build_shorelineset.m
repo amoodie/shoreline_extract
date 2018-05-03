@@ -10,7 +10,7 @@ function [] = build_shorelineset()
 
     %%%% SELECT THE RUNTIME PARAMETERS %%%%
     %
-    % directory of the data folder (relative or absolute path to the folder)
+    % directory of the *raw* data folder (relative or absolute path to the folder)
     %     alternatively use cd <path to location> to execute elsewhere
     meta.directory = fullfile('..', 'data');
     %
@@ -29,7 +29,6 @@ function [] = build_shorelineset()
     %
     %%%% %%%% %%%% %%%% %%%% %%%% %%%% %%%%
     
-
     % create the list of folders to loop through
     listing = dir(meta.directory); % all items in directory
     listing(ismember( {listing.name}, {'.', '..'})) = [];  % dont want . or ..
@@ -102,7 +101,10 @@ function [] = build_shorelineset()
 %         print(fig, savename, '-dpng', '-r200', '-opengl') % save file
 %         close(fig)
         
-        % write out shoreline data to a csv
+        % write out shoreline data to .mat file
+        save(fullfile( '..', 'output', strcat('shoreline_', datestr(meta.date, 'YYYY-mm-dd'), '.mat') ), 'shoreline')
+        
+        % write out shoreline data to a csv for use with other programs if needed
         outputname = fullfile( '..', 'output', strcat('shoreline_', datestr(meta.date, 'YYYY-mm-dd'), '.csv') );
         fid = fopen(outputname, 'w');
         fprintf(fid, 'X, Y\n');

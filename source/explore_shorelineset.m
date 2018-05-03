@@ -1,8 +1,26 @@
-function make_shoreline()
-    
+function explore_shorelineset()
+    %explore_shorelineset explores the shoreline data set
+    %
+    % authored by Andrew J. Moodie and Brandee Carlson
+    % 2015--2018
+    % MIT License
+
+    clear variables;
+    close all;
+
+    %%%% SELECT THE RUNTIME PARAMETERS %%%%
+    %
+    % directory of the *processed* data folder (relative or absolute path to the folder)
+    %     alternatively use cd <path to location> to execute elsewhere
+    meta.directory = fullfile('..', 'output');
+    %
+    %%%% %%%% %%%% %%%% %%%% %%%% %%%% %%%%
+
     % load data
-    [manu.data] = load_data('manual');
-    [auto.data] = load_data('auto');
+    [data] = load_data(meta.directory);
+%     [auto.data] = load_data('auto');
+
+    % STOPPED HERE!!
     T = load('./shorelines/deltaLLcoord.mat');
     deltaCROPLLcoord = T.deltaLLcoord;
     deltaLLcoord = [611066, 4149751]; % this is Lijin
@@ -622,23 +640,40 @@ function [cmap] = colormap_fun(n, s)
     
 end
 
-function [data] = load_data(srcstr)
+function [data] = load_data(directory)
 
-    folders = strsplit(ls(strcat('./shorelines/', srcstr, '_shoreline/')));
-    countfolders = length(folders)-1;
-    data = cell(countfolders, 2);
+    % get the directory listing and identify the shoreline_.mat files
+    listing = dir(directory); % all items in directory
+    listing(ismember( {listing.name}, {'.', '..'})) = [];  % dont want . or ..
+    filesBool = ~[listing.isdir]; % logical of files only
+    listing = listing(filesBool);
+    listingnames = arrayfun(@(x) x.name, listing, 'Unif', 0);
+    listingshoreline = cellfun(@(x) and(contains(x, '.mat'), contains(x, 'shoreline_')), listingnames);
+    shorelinefiles = listing(listingshoreline);
+    listingmeta = cellfun(@(x) and(contains(x, '.mat'), contains(x, 'meta_')), listingnames);
+    metafiles = listing(listingmeta);
     
-    for i = 1:countfolders
-        filename = strcat('./shorelines/', srcstr, '_shoreline/', char(folders(i)));
-        points = csvread(filename, 1, 0);
-        namesplit = strsplit(char(folders(i)), {'_', '.'});
-        date = datenum(namesplit(2));
-        data(i, 1) = num2cell(date);
-        data(i, 2) = {points(:,[1 2])};
+    if size(shorelinefiles) ~= size(metafiles)
+        error('number of shorelines and metadata files does not match')
+    else
+        countfiles = length(shorelinefiles);
     end
     
-    dates = arrayfun(@cell2mat, data(:,1));
-    [~, idx] = sort(dates);
-    data = data(idx, :);
+    % loop through and load data into a cell array
+    for i = 1:countfiles
+        ishoreline = load(fullfile(shorelinefiles(i).folder, shorelinefiles(i).name), 'shoreline');
+        data{i, 1} = ishoreline.shoreline;
+        imeta = load(fullfile(metafiles(i).folder, metafiles(i).name), 'meta');
+        data{i, 2} = imeta.meta;
+    end
+    
+    % convert to a table structure
+    data = cell2struct(data, {'shoreline', 'meta'}, 2);
+    
+    % ensure the data are sorted in time sequence
+    dates = cellfun(@(x) x.date, {data.meta});
+    [~, datessortidx] = sort(dates);
+    data = data(datessortidx);
+    
 end
 
