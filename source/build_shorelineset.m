@@ -12,25 +12,26 @@ function [] = build_shorelineset()
     %
     % directory of the data folder (relative or absolute path to the folder)
     %     alternatively use cd <path to location> to execute elsewhere
-    directory = '../data';
+    meta.directory = '../data';
     %
     % do you want to make and save the processing image of the thresholding
-    make_thresh = true;
+    meta.make_thresh = true;
     %
     % do you want to make and save an RGB image too?
-    make_RGB = true;
+    meta.make_RGB = true;
     %
     % what are the coordinates for cropping to the delta extent
-    deltaULcoord = [633497, 4236964]; 
-    deltacropDim = [3975, 3790];
-    deltaLRcoord = [713380, 4162227];
-    deltaLLcoord = [deltaULcoord(1), deltaLRcoord(2)]; % apex of the delta for cropping
+    meta.deltaULcoord = [633497, 4236964]; 
+%     deltacropDim = [3975, 3790];
+    meta.deltaLRcoord = [713380, 4162227];
+    meta.crop_pts = [meta.deltaULcoord, meta.deltaLRcoord];
+    meta.deltaLLcoord = [meta.deltaULcoord(1), meta.deltaLRcoord(2)]; % apex of the delta for cropping
     %
     %%%% %%%% %%%% %%%% %%%% %%%% %%%% %%%%
     
 
     % create the list of folders to loop through
-    listing = dir(directory); % all items in directory
+    listing = dir(meta.directory); % all items in directory
     listing(ismember( {listing.name}, {'.', '..'})) = [];  % dont want . or ..
     direcoriesBool = [listing.isdir]; % logical of directories only
     folders = cellstr(  vertcat( listing(direcoriesBool).name )  ); % list of folder names only
@@ -41,12 +42,10 @@ function [] = build_shorelineset()
     dates = cell(countfolders,1);       % dates of images
     clouds = NaN(countfolders,1);       % cloud % of images
     outputs = NaN(countfolders,8);      % output dataset
-    
-
 
     % loop through all the folder first to generate some metadata for sorting
-    % sort is important for making a movie
-    [sortidx, meta_sort] = get_sortorder(folders, countfolders, directory);
+    %     sort is important for making a movie
+    [sortidx, meta_sort] = get_sortorder(meta, folders, countfolders, meta.directory);
     folders_sort = folders(sortidx); % rearange folders into this order for main loop
     
     % loop to process image --> shoreline 
@@ -57,24 +56,24 @@ function [] = build_shorelineset()
         
         % grab the metadata
         meta = meta_sort{i};
-        [bandset] = set_bandset(meta.mission); % return bands to use as [thresh, R, G, B]
+        [meta.bandset] = set_bandset(meta.mission); % return bands to use as [thresh, R, G, B]
         
         % open the image that will be used for thresholding
-        thresh_imgname = strcat(meta.name, '_B', bandset(1), '.TIF');
-        thresh_img = imread(char(fullfile(meta.imagefolder, thresh_imgname)));
+        thresh_imgname = strcat(meta.name, '_B', meta.bandset(1), '.TIF');
+        thresh_img = imread(char( fullfile(meta.imagefolder, thresh_imgname) ));
         
         % crop the image
         %    this section is Yellow River delta specific and would need to
         %    be rewritten for any other use.
-        [meta.cropDim] = get_cropDim(deltaULcoord, deltaLRcoord, meta.res); % calculate the dimensions to crop at
-        [thresh_crop] = crop_image(thresh_img, meta.ULcoord, deltaULcoord, meta.cropDim, meta.res); % do the crop
+        [meta.cropDim] = get_cropDim(meta.deltaULcoord, meta.deltaLRcoord, meta.res); % calculate the dimensions to crop at
+        [thresh_crop] = crop_image(thresh_img, meta.ULcoord, meta.deltaULcoord, meta.cropDim, meta.res); % do the crop
         
         % threshold the image to a binary
         thresh_crop_adj = imadjust(thresh_crop, stretchlim(thresh_crop), [0 1], 1); % increase image contrast
         [thresh_val] = get_threshold(thresh_crop_adj); % determine the threshold value to use in binarization
         
         % find the shoreline
-        [crop_edge] = find_shoreline(thresh_crop_adj, thresh_val, make_thresh); % convert to binary and identify delta edge
+        [crop_edge] = find_shoreline(thresh_crop_adj, thresh_val, meta); % convert to binary and identify delta edge
         
         % concatenate edge into shoreline points
         [row, col] = find(crop_edge); % all points on shoreline
@@ -82,8 +81,8 @@ function [] = build_shorelineset()
         
         % convert the shoreline pts from img coords to geo-coords
         pivot_pt = max(shoreline_pts(:,2));
-        shoreline_pts(:, 1) = (shoreline_pts(:, 1).*meta.res) + repmat(deltaLLcoord(1), size(shoreline_pts, 1), 1);
-        shoreline_pts(:, 2) = ((pivot_pt - shoreline_pts(:, 2)).*meta.res) + repmat(deltaLLcoord(2), size(shoreline_pts, 1), 1);
+        shoreline_pts(:, 1) = (shoreline_pts(:, 1).*meta.res) + repmat(meta.deltaLLcoord(1), size(shoreline_pts, 1), 1);
+        shoreline_pts(:, 2) = ((pivot_pt - shoreline_pts(:, 2)).*meta.res) + repmat(meta.deltaLLcoord(2), size(shoreline_pts, 1), 1);
         
         % sort the list into sequential shoreline trace
         [shoreline] = get_ordered(shoreline_pts);
@@ -93,7 +92,7 @@ function [] = build_shorelineset()
             R_imgname = strcat(meta.name, '_B', bandset(2), '.TIF');
             G_imgname = strcat(meta.name, '_B', bandset(3), '.TIF');
             B_imgname = strcat(meta.name, '_B', bandset(4), '.TIF');
-            plot_RGB(R_imgname, G_imgname, B_imgname, meta.cropDim)
+            plot_RGB(R_imgname, G_imgname, B_imgname, meta)
         end
         
         
@@ -115,7 +114,7 @@ function [] = build_shorelineset()
 end
 
 
-function [sortidx, meta_sort] = get_sortorder(folders, countfolders, directory)
+function [sortidx, metadata_sort] = get_sortorder(meta, folders, countfolders, directory)
     % sort the folders for processing in order,
     % this is needed for making a movie while processing if desired
     
@@ -130,15 +129,15 @@ function [sortidx, meta_sort] = get_sortorder(folders, countfolders, directory)
         fidmetadata = fopen(char(imagemetafile)); % fid of metadata file
         
         % process the file to extract the metadata
-        [meta{i, 1}] = get_metadata(fidmetadata, imagefolder);
+        [metadata{i, 1}] = get_metadata(meta,  fidmetadata, imagefolder);
         
         % date is what we're after for sorting
-        dates(i) = meta{i}.date;
+        dates(i) = metadata{i}.date;
     end
     
     % perform the sort
     [~, sortidx] = sort(dates);
-    [meta_sort] = meta(sortidx);
+    [metadata_sort] = metadata(sortidx);
 end
 
 
@@ -155,7 +154,7 @@ function [crop_img] = crop_image(image, ULcoord, cropULcoord, cropDim, resolutio
 end
 
 
-function [img_edge] = find_shoreline(img, thresh, make_thresh)
+function [img_edge] = find_shoreline(img, thresh, meta)
     % main shoreline extraction routine descibed in Moodie et al.
 
     img_bw = im2bw(img, thresh);                        % threshold image
@@ -174,7 +173,7 @@ function [img_edge] = find_shoreline(img, thresh, make_thresh)
     img_fill3 = bwareafilt(img_unpad, 1, 'largest');    % retain only largest 
     img_edge = edge(img_fill3, 'sobel');                % find edge
     
-    if make_thresh
+    if meta.make_thresh
 
         fig = figure();
         subplot(2,3,1)
@@ -233,7 +232,7 @@ function [bandset] = set_bandset(mission)
 end
 
 
-function [meta] = get_metadata(fidmetadata, imagefolder)
+function [meta] = get_metadata(meta, fidmetadata, imagefolder)
     
     % read the raw text file into a cell array of strings
     [metadata] = textscan(fidmetadata, '%s','delimiter', '\n');
