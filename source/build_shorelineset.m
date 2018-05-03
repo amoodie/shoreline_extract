@@ -14,8 +14,14 @@ function [] = build_shorelineset()
     %     alternatively use cd <path to location> to execute elsewhere
     directory = '../data';
     %
+    % do you want to make and save the processing image of the thresholding
+    make_thresh = true;
+    %
     % do you want to make and save an RGB image too?
     make_RGB = true;
+    %
+    % should we spruce up the RGB image a bit for display? (contrast, balance)
+    make_RGB_pretty = true;
     %
     % what are the coordinates for cropping to the delta extent
     deltaULcoord = [633497, 4236964]; 
@@ -71,7 +77,7 @@ function [] = build_shorelineset()
         [thresh_val] = get_threshold(thresh_crop_adj); % determine the threshold value to use in binarization
         
         % find the shoreline
-        [crop_edge] = find_shoreline(thresh_crop_adj, thresh_val); % convert to binary and identify delta edge
+        [crop_edge] = find_shoreline(thresh_crop_adj, thresh_val, make_thresh); % convert to binary and identify delta edge
         
         % concatenate edge into shoreline points
         [row, col] = find(crop_edge); % all points on shoreline
@@ -93,7 +99,12 @@ function [] = build_shorelineset()
         B_imgname = strcat(meta.name, '_B', bandset(4), '.TIF');
         B_img = imread(char(fullfile(meta.imagefolder, B_imgname)));
         RGB_img = cat(3, R_img, G_img, B_img);
-        if 
+        if make_RGB
+            if make_RGB_pretty
+                figure()
+                imshow(RGB_img)
+            end
+        end
         
         
         [fig] = make_plot(thresh_crop, shoreline_idx, i, meta);
@@ -141,27 +152,6 @@ function [sortidx, meta_sort] = get_sortorder(folders, countfolders, directory)
 end
 
 
-function  [fig] = make_plot(thresh_img, shoreline, i, meta)
-    fig = figure();
-    imshow(thresh_img)
-    hold on
-    plot(shoreline(:, 1), shoreline(:, 2), '.', 'Color', [1 0 0])
-    title(datestr(meta.date));
-    drawnow
-end
-
-
-function [shoreline, thresh_crop] = process(thresh_image,  ULcoord, cropULcoord, cropLRcoord, resolution)
-%     [cropDim] = get_cropDim(cropULcoord, cropLRcoord, resolution);
-%     [thresh_crop_raw] = crop_image(thresh_image, ULcoord, cropULcoord, cropDim, resolution);
-%     thresh_crop = imadjust(thresh_crop_raw, stretchlim(thresh_crop_raw), [0 1], 1);
-%     [thresh] = get_threshold(thresh_crop);
-%     [crop_close, crop_edge] = find_shoreline(thresh_crop, thresh);
-%     [row, col] = find(crop_edge);
-%     shoreline = horzcat(col, row);
-end
-
-
 function [cropDim] = get_cropDim(ULcoord, LRcoord, res)
     xDim = (LRcoord(1) - ULcoord(1)) / res; % x
     yDim = (ULcoord(2) - LRcoord(2)) / res; % y
@@ -175,8 +165,8 @@ function [crop_img] = crop_image(image, ULcoord, cropULcoord, cropDim, resolutio
 end
 
 
-function [img_edge] = find_shoreline(img, thresh)
-    % main shoreline extraction method descibed in Moodie et al.
+function [img_edge] = find_shoreline(img, thresh, make_thresh)
+    % main shoreline extraction routine descibed in Moodie et al.
 
     img_bw = im2bw(img, thresh);                        % threshold image
     img_fill = imfill(img_bw, 'holes');                 % fill it from the outside
@@ -194,35 +184,38 @@ function [img_edge] = find_shoreline(img, thresh)
     img_fill3 = bwareafilt(img_unpad, 1, 'largest');    % retain only largest 
     img_edge = edge(img_fill3, 'sobel');                % find edge
     
-    fig = figure();
-    subplot(2,3,1)
-    name = 'raw image';
-        imshow(img)
-        title(name)
-    subplot(2,3,2)
-    name = 'apply threshold';
-        imshow(img_bw)
-        title(name)
-    subplot(2,3,3)
-    name = 'flood pixels';
-        imshowpair(img_bw, img_fill)
-        title(name)
-    subplot(2,3,4)
-    name = 'remove small objects';
-        imshowpair(img_fill, img_rms2)
-        title(name)
-    subplot(2,3,5)
-    name = 'morphological open and close';
-        imshowpair(img_rms2, img_close)
-        title(name)
-    subplot(2,3,6)
-    name = 'extract shoreline';
-        imshow(img)
-        hold on
-        [row, col] = find(img_edge);
-        shoreline = horzcat(col, row);
-        plot(shoreline(:,1), shoreline(:,2), 'r.')
-        title(name)
+    if make_thresh
+
+        fig = figure();
+        subplot(2,3,1)
+        name = 'raw image';
+            imshow(img)
+            title(name)
+        subplot(2,3,2)
+        name = 'apply threshold';
+            imshow(img_bw)
+            title(name)
+        subplot(2,3,3)
+        name = 'flood pixels';
+            imshowpair(img_bw, img_fill)
+            title(name)
+        subplot(2,3,4)
+        name = 'remove small objects';
+            imshowpair(img_fill, img_rms2)
+            title(name)
+        subplot(2,3,5)
+        name = 'morphological open and close';
+            imshowpair(img_rms2, img_close)
+            title(name)
+        subplot(2,3,6)
+        name = 'extract shoreline';
+            imshow(img)
+            hold on
+            [row, col] = find(img_edge);
+            shoreline = horzcat(col, row);
+            plot(shoreline(:,1), shoreline(:,2), 'r.')
+            title(name)
+    end
 end
 
 
