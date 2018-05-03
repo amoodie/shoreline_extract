@@ -147,6 +147,8 @@ end
 
 
 function [cropDim] = get_cropDim(ULcoord, LRcoord, res)
+    % part of the cropping calculation, this is where I want to take 
+    % a list of points and find the bounding box
     xDim = (LRcoord(1) - ULcoord(1)) / res; % x
     yDim = (ULcoord(2) - LRcoord(2)) / res; % y
     cropDim = [xDim yDim];
@@ -160,8 +162,18 @@ end
 
 
 function [img_edge] = find_shoreline(img, thresh, meta)
-    % main shoreline extraction routine descibed in Moodie et al.
-
+    %find_shoreline performs the thresholding and extraction operations
+    %
+    % [img_edge] = find_shoreline(img, thresh, meta) is the main shoreline 
+    %    extraction routine descibed in Moodie et al.
+    %
+    % inputs:
+    %    img = the matrix of image intensity values to threshold with
+    %    thresh = numeric intensity to binarize with
+    %    meta = auxilary metadata for whether to make the plot 
+    % outputs:
+    %    img_edge = matrix same size as img with only the shoreline edge as true
+    
     img_bw = im2bw(img, thresh);                        % threshold image
     img_fill = imfill(img_bw, 'holes');                 % fill it from the outside
     img_rms = ~bwareaopen(~img_fill, 30000);            % remove small isolated water-on-land objects
@@ -179,7 +191,6 @@ function [img_edge] = find_shoreline(img, thresh, meta)
     img_edge = edge(img_fill3, 'sobel');                % find edge
     
     if meta.make_thresh
-
         fig = figure();
         subplot(2,3,1)
         name = 'raw image';
@@ -210,6 +221,7 @@ function [img_edge] = find_shoreline(img, thresh, meta)
             plot(shoreline(:,1), shoreline(:,2), 'r.')
             title(name)
     end
+    
 end
 
 
