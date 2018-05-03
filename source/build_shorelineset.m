@@ -52,16 +52,21 @@ function [] = build_shorelineset()
         % crop the image
         %    this section is Yellow River delta specific and would need to
         %    be rewritten for any other use.
-        [cropDim] = get_cropDim(deltaULcoord, deltaLRcoord, meta.res);
-        [thresh_crop] = crop_image(thresh_img, meta.ULcoord, deltaULcoord, cropDim, meta.res);
+        [cropDim] = get_cropDim(deltaULcoord, deltaLRcoord, meta.res); % calculate the dimensions to crop at
+        [thresh_crop] = crop_image(thresh_img, meta.ULcoord, deltaULcoord, cropDim, meta.res); % do the crop
         
-        % threshold the image to a binary 
-        % STOPPED HERE !!!
-        % NEED TO STRIP OUT THE PART OF process() THAT DOES THE
-        % THRESHOLDING, GET BACK THE THRESHED IMG
-        [shoreline_idx, thresh_crop] = process(thresh_img, meta.ULcoord, deltaULcoord, deltaLRcoord, meta.res);       
+        % threshold the image to a binary
+        thresh_crop_adj = imadjust(thresh_crop_raw, stretchlim(thresh_crop_raw), [0 1], 1); % increase image contrast
+        [thresh] = get_threshold(thresh_crop_adj);
+        
+        %[shoreline_idx, thresh_crop] = process(thresh_img, meta.ULcoord, deltaULcoord, deltaLRcoord, meta.res);       
         
         % find the shoreline
+        [crop_close, crop_edge] = find_shoreline(thresh_crop, thresh);
+        
+        % concatenate into shoreline
+        [row, col] = find(crop_edge);
+        shoreline = horzcat(col, row);
         
         % make a RGB image
         
@@ -128,11 +133,11 @@ end
 function [shoreline, thresh_crop] = process(thresh_image,  ULcoord, cropULcoord, cropLRcoord, resolution)
 %     [cropDim] = get_cropDim(cropULcoord, cropLRcoord, resolution);
 %     [thresh_crop_raw] = crop_image(thresh_image, ULcoord, cropULcoord, cropDim, resolution);
-    thresh_crop = imadjust(thresh_crop_raw, stretchlim(thresh_crop_raw), [0 1], 1);
-    [thresh] = get_threshold(thresh_crop);
-    [crop_close, crop_edge] = find_shoreline(thresh_crop, thresh);
-    [row, col] = find(crop_edge);
-    shoreline = horzcat(col, row);
+%     thresh_crop = imadjust(thresh_crop_raw, stretchlim(thresh_crop_raw), [0 1], 1);
+%     [thresh] = get_threshold(thresh_crop);
+%     [crop_close, crop_edge] = find_shoreline(thresh_crop, thresh);
+%     [row, col] = find(crop_edge);
+%     shoreline = horzcat(col, row);
 end
 
 
