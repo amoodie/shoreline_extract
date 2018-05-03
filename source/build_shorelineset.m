@@ -56,13 +56,13 @@ function [] = build_shorelineset()
         [thresh_crop] = crop_image(thresh_img, meta.ULcoord, deltaULcoord, cropDim, meta.res); % do the crop
         
         % threshold the image to a binary
-        thresh_crop_adj = imadjust(thresh_crop_raw, stretchlim(thresh_crop_raw), [0 1], 1); % increase image contrast
-        [thresh] = get_threshold(thresh_crop_adj);
+        thresh_crop_adj = imadjust(thresh_crop, stretchlim(thresh_crop), [0 1], 1); % increase image contrast
+        [thresh_val] = get_threshold(thresh_crop_adj);
         
         %[shoreline_idx, thresh_crop] = process(thresh_img, meta.ULcoord, deltaULcoord, deltaLRcoord, meta.res);       
         
         % find the shoreline
-        [crop_close, crop_edge] = find_shoreline(thresh_crop, thresh);
+        [crop_close, crop_edge] = find_shoreline(thresh_crop, thresh_val);
         
         % concatenate into shoreline
         [row, col] = find(crop_edge);
