@@ -106,54 +106,6 @@ function explore_shorelineset()
         box on
         set(gca, 'LineWidth', 1.1, 'FontSize', 10, 'XColor', 'k', 'YColor', 'k')
     
-    
-%     % make tables
-%     manu.tab = make_table(manu);
-%     auto.tab = make_table(auto);
-%     all.tab = make_rangetable(manu, auto, [datenum('1850','YYYY'), datenum('2020','YYYY')]); % all data from all time
-%     qing.tab = make_rangetable(manu, auto, [datenum('1976','YYYY'), datenum('07/31/1997','mm/dd/YYYY')]); % only data from qingshuigou lobe development
-%     postqing.tab = make_rangetable(manu, auto, [datenum('07/31/1997','mm/dd/YYYY'), datenum('2020', 'YYYY')]); % only data from *after* qingshuigou lobe development
-%     preQ8.tab = make_rangetable(manu, auto, [datenum('1850','YYYY'), datenum('1997','YYYY')]); % all data before abandonment of qingshuigou
-%     Q8.tab = make_rangetable(manu, auto, [datenum('07/31/1997','mm/dd/YYYY'), datenum('06/31/2007','mm/dd/YYYY')]); % only data from Q8 lobe development
-%     mod.tab = make_rangetable(manu, auto, [datenum('06/31/2007','mm/dd/YYYY'), datenum('2020','YYYY')]); % only data from modern lobe development
-%     
-    % make rate models
-    % entire delta radius model
-    preQ8.deltamodel = fitlm(preQ8.tab, 'meandeltarad ~ date');
-    preQ8.deltaeval.b = preQ8.deltamodel.Coefficients.Estimate(1);
-    preQ8.deltaeval.m = preQ8.deltamodel.Coefficients.Estimate(2);
-    preQ8.deltaeval.bserr = bootstrp(35, @mean, preQ8.deltamodel.Residuals.Raw);
-    preQ8.deltaeval.CI = coefCI(preQ8.deltamodel);
-    preQ8.deltaeval.err = mean(abs(preQ8.deltaeval.CI(2,:)-preQ8.deltaeval.m));
-    preQ8.deltaeval.r2 = preQ8.deltamodel.Rsquared.ordinary;
-    preQ8.deltaeval.xs = linspace(min(preQ8.tab.date), max(preQ8.tab.date), 10);
-    preQ8.deltaeval.ys = ((preQ8.deltaeval.m .* preQ8.deltaeval.xs) + preQ8.deltaeval.b);
-    
-    % quingshuigou lobe progradation rate model
-    qing.intmodel = fitlm(qing.tab, 'qingint ~ date');
-    qing.inteval.b = qing.intmodel.Coefficients.Estimate(1);
-    qing.inteval.m = qing.intmodel.Coefficients.Estimate(2);
-    qing.inteval.CI = coefCI(qing.intmodel);
-    qing.inteval.err = mean(abs(qing.inteval.CI(2,:)-qing.inteval.m));
-    qing.inteval.r2 = qing.intmodel.Rsquared.ordinary;
-    qing.inteval.xs = linspace(min(qing.tab.date), max(qing.tab.date), 10);
-    qing.inteval.ys = ((qing.inteval.m .* qing.inteval.xs) + qing.inteval.b);
-    
-    % make plots
-    fig_alldata = figure('Visible', 'off');
-    fig_shorelines = figure('Visible', 'off');
-    fig_XOMmeanrad = figure('Visible', 'off');
-    fig_JGRmeanrad = figure('Visible', 'off');
-    [fig_alldata] = all_data(manu, auto, qing, preQ8, Q8, mod, fig_alldata);
-%     [fig_shorelines] = all_shorelines(manu, auto, deltaLLcoord, deltaCROPLLcoord, lobe_mask, fig_shorelines);
-%     [fig_XOMmeanrad] = XOM_meanrad(manu, auto, lobe, preAC2, fig_XOMmeanrad);
-    [fig_JGRmeanrad] = JGR_meanrad(manu, auto, qing, preQ8, fig_JGRmeanrad);
-    
-    [fig_movie] = movie_fig(manu, auto, deltaLLcoord, deltaCROPLLcoord, lobe_mask, fig_shorelines);
-    
-    save('./shorelines/shoreline_out.mat', 'all')
-    save('./shorelines/meandeltarad_out.mat', 'preAC2')
-    
 end
 
 
@@ -214,16 +166,19 @@ function [intersection] = get_intersection(shoreline, line, res)
 end
 
 
-function [ratemdl] = make_rate(table, formula) 
-    preQ8.deltamodel = fitlm(preQ8.tab, 'meandeltarad ~ date');
-    preQ8.deltaeval.b = preQ8.deltamodel.Coefficients.Estimate(1);
-    preQ8.deltaeval.m = preQ8.deltamodel.Coefficients.Estimate(2);
-    preQ8.deltaeval.bserr = bootstrp(35, @mean, preQ8.deltamodel.Residuals.Raw);
-    preQ8.deltaeval.CI = coefCI(preQ8.deltamodel);
-    preQ8.deltaeval.err = mean(abs(preQ8.deltaeval.CI(2,:)-preQ8.deltaeval.m));
-    preQ8.deltaeval.r2 = preQ8.deltamodel.Rsquared.ordinary;
-    preQ8.deltaeval.xs = linspace(min(preQ8.tab.date), max(preQ8.tab.date), 10);
-    preQ8.deltaeval.ys = ((preQ8.deltaeval.m .* preQ8.deltaeval.xs) + preQ8.deltaeval.b);
+function [model] = make_rate(table, formula) 
+    %make_rate makes a linear rate model for given formula
+    %
+    
+    model.mdl = fitlm(table, formula);
+    model.b = model.mdl.Coefficients.Estimate(1);
+    model.m = model.mdl.Coefficients.Estimate(2);
+    model.bserr = bootstrp(35, @mean, model.mdl.Residuals.Raw);
+    model.CI = coefCI(model.mdl);
+    model.err = mean(abs(model.CI(2,:)-model.m));
+    model.r2 = model.mdl.Rsquared.ordinary;
+    model.xs = linspace(min(table.date), max(table.date), 10);
+    model.ys = ((model.m .* model.xs) + model.b);
 end
 
 
@@ -234,10 +189,12 @@ function [table] = make_rangetable(all, range)
     %   all = the total datatable
     %   range = a two element vector with datenum cooresponding to lower 
     %       and upper bound of data you want retained
+    % outputs:
+    %   table = table containing all data in range
     %
     
     keep = and(all.tab.date >= range(1), all.tab.date <= range(2));
-    table = all.tab(keep.manu, :);
+    table = all.tab(keep, :);
     
 end
 
@@ -246,6 +203,7 @@ function [subset] = get_subset(shoreline, line)
     %get_subset finds the minimum number of points in data that could possibly intersect with line
     %
     % useful for reducing compute time in the intersection code
+    %
     
     % make logicals of what's beyond the line limits
     trash_left = (shoreline(:,1) < min(line(:,1))); % left
