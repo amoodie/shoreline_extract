@@ -41,16 +41,41 @@ function explore_shorelineset()
                 
         % calculate the mean radius and intersection
         [data(i).radius] = get_radius(data(i).shoreline, deltaLLcoord); % radius of the entire delta
-        [data(i).qingint] = get_intersection(data(i).lobe, qing.xy, data(i).meta.res); % intersection with Qingshuigou
+        [data(i).qingint] = get_intersection(data(i).lobe, qing, data(i).meta.res); % intersection with Qingshuigou
     
     end
     
-    % demonstration of it
-%     figure()
-%     plot(data(i).shoreline(:,1), data(i).shoreline(:,2), 'k.')
-%     hold on
-%     plot(qing.xy(:,1), qing.xy(:,2), 'g.')
-%     plot(data(i).qingint.coords(1), data(i).qingint.coords(2), 'r*')
+    % demonstration of intersection extraction (last in loop)
+    figure();
+    subplot(2, 4, [1:2 5:6]); hold on;
+        plot(data(i).shoreline(:,1), data(i).shoreline(:,2), 'k-', 'LineWidth', 1.5) % plot the shoreline
+        plot(qing.xy(:,1), qing.xy(:,2), 'g-', 'LineWidth', 1.5) % plot the intersection line
+        plot(data(i).qingint.shorelinecoords(1), data(i).qingint.shorelinecoords(2), 'r*', 'MarkerSize', 8) % plot the shoreline determined intersection
+        plot(data(i).qingint.linecoords(1), data(i).qingint.linecoords(2), 'r*', 'MarkerSize', 8) % plot the centerline determined intersection
+        xl = xlim; yl = ylim;
+        xlim([min(data(i).shoreline(:,1)), xl(2)])
+        ylim([min(data(i).shoreline(:,2)), yl(2)])
+        axis equal
+        axis tight
+        box on
+        set(gca, 'LineWidth', 1.5, 'FontSize', 10)
+    subplot(2, 4, [3:4 7:8]); hold on;
+        plot(data(i).shoreline(:,1), data(i).shoreline(:,2), 'k-', 'LineWidth', 1.5) % plot the shoreline
+        plot(qing.xy(:,1), qing.xy(:,2), 'g-', 'LineWidth', 1.5) % plot the intersection line
+        plot(data(i).qingint.shorelinecoords(1), data(i).qingint.shorelinecoords(2), 'r*', 'MarkerSize', 8) % plot the shoreline determined intersection
+        plot(data(i).qingint.linecoords(1), data(i).qingint.linecoords(2), 'r*', 'MarkerSize', 8) % plot the centerline determined intersection
+        axis equal
+        xlim([data(i).qingint.linecoords(1)-60, data(i).qingint.linecoords(1)+60])
+        ylim([data(i).qingint.linecoords(2)-60, data(i).qingint.linecoords(2)+60])
+        set(gca, 'xTickLabel', [], 'yTickLabel', [])
+        box on
+        set(gca, 'LineWidth', 1.5, 'FontSize', 10)
+        
+    
+    % demonstration of the rate plot
+    figure()
+    subplot(1, 2, 1); hold on;
+    plot(arrayfun(@(x) x.meta.date, data), arrayfun(@(x) x.qingint.distalong, data), 'ko')
     
     
 %     % make tables
@@ -134,10 +159,10 @@ function [intersection] = get_intersection(shoreline, line, res)
     % loop through every point in shoreline to determine if it intersects with line
     for i = 1:npts
         % calculate the distance from this shoreline pt to every point in line
-        distances = sqrt(((shoreline(i, 1) - line(:, 1)).^2 + (shoreline(i, 2) - line(:, 2)).^2));
+        distances = sqrt(((shoreline(i, 1) - line.xy(:, 1)).^2 + (shoreline(i, 2) - line.xy(:, 2)).^2));
         
         % record the minimum distance for that shoreline point
-        [mindists(i)] = min(distances);
+        [mindists(i), mindistsidx(i)] = nanmin(distances);
         
     end
     % find the minimum distance of any of the points
@@ -149,8 +174,10 @@ function [intersection] = get_intersection(shoreline, line, res)
         mindist = NaN;
     end
 
-    intersection.dist = mindist;
-    intersection.coords = shoreline(mindistidx, :);
+    intersection.mindist = mindist; % minimum distance used to find the intersection
+    intersection.shorelinecoords = shoreline(mindistidx, :); % the point of the intersection in the shoreline dataset
+    intersection.linecoords = line.xy(mindistsidx(mindistidx), :);
+    intersection.distalong = line.along(mindistsidx(mindistidx));
                 
 end
 
