@@ -153,7 +153,9 @@ function explore_shorelineset()
     
     save('./shorelines/shoreline_out.mat', 'all')
     save('./shorelines/meandeltarad_out.mat', 'preAC2')
+    
 end
+
 
 function [radius] = get_radius(shoreline, deltaLLcoord)
     %get_radius returns a radius object
@@ -178,6 +180,7 @@ function [radius] = get_radius(shoreline, deltaLLcoord)
     radius.std = nanstd(obs);
     
 end
+
 
 function [intersection] = get_intersection(shoreline, line, res)
     %get_intersection returns an intersection object
@@ -210,6 +213,7 @@ function [intersection] = get_intersection(shoreline, line, res)
                 
 end
 
+
 function [ratemdl] = make_rate(table, formula) 
     preQ8.deltamodel = fitlm(preQ8.tab, 'meandeltarad ~ date');
     preQ8.deltaeval.b = preQ8.deltamodel.Coefficients.Estimate(1);
@@ -237,36 +241,6 @@ function [table] = make_rangetable(all, range)
     
 end
 
-function [mask] = make_mask(acoord)
-    mask.acoord = acoord; % apex coord
-    mask.thet = 60; % opening angle
-    mask.xdist = 1100 * (30); % max distance from apex (don't change 30)
-    mask.maxh = [mask.acoord(1)+mask.xdist mask.acoord(2)+tand(mask.thet)*mask.xdist];
-    mask.maxl = [mask.acoord(1)+mask.xdist mask.acoord(2)-tand(mask.thet)*mask.xdist];
-end
-
-function [subset] = get_subsets(data, mask)
-    Nobs = size(data, 1);
-    subset = cell(size(data));
-    for i = 1:Nobs
-        clear pts
-        pts(:,2) = data{i, 2}((data{i, 2}(:,2) <= mask.maxh(2)), 2); % cut the dataset down to only below upperlim
-        pts(:,1) = data{i, 2}((data{i, 2}(:,2) <= mask.maxh(2)), 1); % cut the dataset down
-        Npts = size(pts, 1);
-        keeps = zeros(Npts, 1);
-        for j = 1:Npts
-            xdiff = pts(j, 1) - mask.acoord(1);
-            ydiff = pts(j, 2) - mask.acoord(2);
-            hlim = [mask.acoord(1)+xdiff mask.acoord(2)+tand(mask.thet)*xdiff];
-            llim = [mask.acoord(1)+xdiff mask.acoord(2)-tand(mask.thet)*xdiff];
-            if pts(j, 2) < hlim(2) && pts(j, 2) > llim(2)
-                keeps(j) = 1;
-            end
-        end
-        subset(i, 1) = num2cell(data{i, 1});
-        subset(i, 2) = {pts(logical(keeps), :)};
-    end
-end
 
 function [subset] = get_subset(shoreline, line)
     %get_subset finds the minimum number of points in data that could possibly intersect with line
@@ -284,7 +258,6 @@ function [subset] = get_subset(shoreline, line)
     subset = shoreline(keep, :); 
     
 end
-
 
 
 function [fig] = all_shorelines(manu, auto, deltaLLcoord, deltaCROPLLcoord, mask, fig)
@@ -328,6 +301,7 @@ function [fig] = all_shorelines(manu, auto, deltaLLcoord, deltaCROPLLcoord, mask
     
 end
 
+
 function [movieFIG] = movie_fig(manu, auto, deltaLLcoord, deltaCROPLLcoord, mask, movieFIG)
     all.data = vertcat(manu.data, auto.data);
 %     [cmap] = parula(size(all.data, 1));
@@ -368,6 +342,7 @@ function [movieFIG] = movie_fig(manu, auto, deltaLLcoord, deltaCROPLLcoord, mask
 
 
 end
+
 
 function [fig] = JGR_meanrad(manu, auto, qing, preQ8, fig)
     figure(fig)
@@ -431,6 +406,7 @@ function [fig] = JGR_meanrad(manu, auto, qing, preQ8, fig)
     print('-dpng', '-r300', './figs/JGR_shoreline_data.png');
     print('-depsc','-r300','-painters', './figs/JGR_shoreline_data.eps');
 end
+
 
 function [fig] = all_data(manu, auto, qing, preQ8, Q8, mod, fig)
     figure(fig)
@@ -579,6 +555,7 @@ function [fig] = all_data(manu, auto, qing, preQ8, Q8, mod, fig)
     
 end
 
+
 function [fig] = XOM_meanrad(manu, auto, lobe, modelset, fig)
     figure(fig)
     [colorOrder] = get(gca, 'ColorOrder');
@@ -640,21 +617,6 @@ function [fig] = XOM_meanrad(manu, auto, lobe, modelset, fig)
     print('-depsc','-r300','-painters', './figs/XOM_shoreline_data.eps');
 end
 
-%% stable
-function [cmap] = colormap_fun(n, s)
-
-    tfig = figure('Visible', 'off');
-    [colorOrder] = get(gca, 'ColorOrder');
-    ends = colorOrder(s:s+1, :) * 255;
-    close(tfig)
-
-    RRR = linspace(ends(1, 1), ends(2, 1), n+1) / 255;
-    GGG = linspace(ends(1, 2), ends(2, 2), n+1) / 255;
-    BBB = linspace(ends(1, 3), ends(2, 3), n+1) / 255;
-    
-    [cmap] = colormap([RRR',GGG',BBB']);
-    
-end
 
 function [data] = load_data(directory)
 
