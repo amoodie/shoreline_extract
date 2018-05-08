@@ -70,6 +70,11 @@ function explore_shorelineset()
         xl = xlim; yl = ylim;
         xlim([min(data(i).shoreline(:,1)), xl(2)])
         ylim([min(data(i).shoreline(:,2)), yl(2)])
+        set(gca, 'xTickLabels', xticks/1000)
+        set(gca, 'yTickLabels', yticks/1000)
+        xlabel('Easting UTM Zone 50S (km)')
+        ylabel('Northing UTM Zone 50S (km)')
+        title('find intersection')
         axis equal
         axis tight
         box on
@@ -82,24 +87,26 @@ function explore_shorelineset()
         axis equal
         xlim([data(i).qingint.linecoords(1)-60, data(i).qingint.linecoords(1)+60])
         ylim([data(i).qingint.linecoords(2)-60, data(i).qingint.linecoords(2)+60])
+        title('zoomed')
         set(gca, 'xTickLabel', [], 'yTickLabel', [])
         box on
         set(gca, 'LineWidth', 1.5, 'FontSize', 10)
         
-    
     % demonstration of the rate plot
     figure()
     s1 = subplot(1, 2, 1); hold on;
+        plot(repmat(datenum('1976','YYYY'), 1, 2), [20 90], ':', 'Color', [0 0 0]) % lower bound of qingshuigou development
+        plot(repmat(datenum('1997','YYYY'), 1, 2), [20 90], ':', 'Color', [0 0 0]) % upper bound of qingshuigou development
         plot(all.tab.date, all.tab.deltaradius ./ 1000, 'r.', 'MarkerSize', 10) % plot the data
         plot(delta.model.xs, delta.model.ys ./ 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0]) % plot the model
         datetick('x', 'YYYY')
-%         xlim([datenum('1970','YYYY') datenum('2000','YYYY')])
+        xlim([datenum('1970','YYYY') datenum('2000','YYYY')])
         params1 = {['rate = ', num2str(round(delta.model.m * 365.25)), ' m/yr'], ...
             ['r^2 = ', num2str(round(delta.model.r2, 2))]};
         format1 = sprintf('%s\n', params1{:});
-        annot1 = text(0.5, 0.1, format1(1:end-1), ...
+        annot1 = text(0.1, 0.1, format1(1:end-1), ...
             'Color', [0 0 0], 'Parent', s1, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-%         title('YR delta development')
+        title('YR delta development')
         xlabel('year')
         ylabel('mean delta radius (km)')
         box on
@@ -116,7 +123,7 @@ function explore_shorelineset()
         format2 = sprintf('%s\n', params2{:});
         annot2 = text(0.5, 0.1, format2(1:end-1), ...
             'Color', [0 0 0], 'Parent', s2, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-%         title('Qingshuigou development')
+        title('Qingshuigou lobe development')
         xlabel('year')
         ylabel('distance downstream from datum (km)')
         box on
@@ -232,364 +239,6 @@ function [subset] = get_subset(shoreline, line)
     keep = ~ or(  or(trash_left, trash_right), or(trash_bottom, trash_top)  );
     subset = shoreline(keep, :); 
     
-end
-
-
-function [fig] = all_shorelines(manu, auto, deltaLLcoord, deltaCROPLLcoord, mask, fig)
-    all.data = vertcat(manu.data, auto.data);
-    filename = '../maps/intersection_channelline.csv';
-    AC1channelline = csvread(filename, 1, 0);
-    filename = '../maps/intersection_AC2.csv';
-    AC2channelline = csvread(filename, 1, 0);
-    filename = '../maps/intersection_2016.csv';
-    modernchannelline = csvread(filename, 1, 0);
-
-    [cmap] = colormap_fun(size(all.data, 1), 1); % second input is start idx
-    [cmap] = parula(size(all.data, 1));
-    figure(fig)
-        cla
-        hold on
-            for p = 1:size(all.data, 1)
-                plot(all.data{p, 2}(:, 1), all.data{p, 2}(:, 2), '.', 'Color', cmap(p,:))
-            end
-            plot(AC1channelline(:, 1), AC1channelline(:, 2), '.', 'Color', [0 0 0])
-            plot(AC2channelline(:, 1), AC2channelline(:, 2), '.', 'Color', [0 0 0])
-            plot(modernchannelline(:, 1), modernchannelline(:, 2), '.', 'Color', [0 0 0])
-%             plot([mask.acoord(1) mask.maxh(1)], [mask.acoord(2), mask.maxh(2)], 'Color', [0 0 0], 'LineStyle', '--', 'LineWidth', 1.2)
-%             plot([mask.acoord(1) mask.maxl(1)], [mask.acoord(2), mask.maxl(2)], 'Color', [0 0 0], 'LineStyle', '--', 'LineWidth', 1.2)
-        text(all.data{1, 2}(1350, 1), all.data{1, 2}(970, 2), datestr(all.data{1, 1}, 'YYYY'))
-        text(698657, 4195500, datestr(all.data{end, 1}, 'YYYY'))
-%         title('shorelines')
-        axis('equal')
-        xlim([deltaCROPLLcoord(1) 720000])
-        ylim([deltaCROPLLcoord(2) 4233000])
-        xTicks = get(gca, 'XTick');
-        xTicks = xTicks(1:2:end);
-        set(gca, 'XTick', (xTicks), 'XTickLabel', (xTicks))
-        yTicks = get(gca, 'YTick')';
-        yTicks = yTicks(1:1:end);
-        box on
-        set(gca, 'YTick', (yTicks), 'YTickLabel', num2str(yTicks)) 
-        set(gca, 'FontSize', 10, 'LineWidth', 1.5)
-        colorbar('Ticks', [0 1], 'TickLabels',{'1855','2016'})
-    print('-dpng', '-r300', './figs/XOM_shoreline_map.png');
-    
-end
-
-
-function [movieFIG] = movie_fig(manu, auto, deltaLLcoord, deltaCROPLLcoord, mask, movieFIG)
-    all.data = vertcat(manu.data, auto.data);
-%     [cmap] = parula(size(all.data, 1));
-    [cmap] = parula(77);
-    filename = '../maps/intersection_channelline.csv';
-    AC1channelline = csvread(filename, 1, 0);
-
-    figure(movieFIG)
-    axis('equal')
-    xlim([deltaCROPLLcoord(1) 720000])
-    ylim([deltaCROPLLcoord(2) 4233000])
-    xTicks = get(gca, 'XTick');
-    xTicks = xTicks(1:2:end);
-    set(gca, 'XTick', (xTicks), 'XTickLabel', (xTicks))
-    yTicks = get(gca, 'YTick')';
-    yTicks = yTicks(1:1:end);
-    box on
-    set(gca, 'YTick', (yTicks), 'YTickLabel', num2str(yTicks)) 
-    set(gca, 'FontSize', 10, 'LineWidth', 1.5)
-    set(movieFIG,'Visible','on');
-    set(movieFIG, 'Pos', [100 100 700 600]);
-    set(movieFIG, 'PaperPositionMode', 'auto')
-    colorbar('Ticks', [0 1], 'TickLabels',{'1973','1996'}, 'position', [0.75 0.75 0.05 0.1]);
-    cla
-    hold on
-        for p = 3:81
-            plot(all.data{p, 3}(:, 1), all.data{p, 3}(:, 2), '-', 'Color', cmap(p,:))
-            trace = plot(AC1channelline(:, 1), AC1channelline(:, 2), '-', 'Color', [0 0 0]);
-            drawnow 
-%             saveas(movieFIG, sprintf(strcat('./figs/shorelinemovie/%03d.png'), p-2))
-            delete(trace)
-        end
-            
-%             plot(AC2channelline(:, 1), AC2channelline(:, 2), '.', 'Color', [0 0 0])
-%             plot(modernchannelline(:, 1), modernchannelline(:, 2), '.', 'Color', [0 0 0])
-%             plot([mask.acoord(1) mask.maxh(1)], [mask.acoord(2), mask.maxh(2)], 'Color', [0 0 0], 'LineStyle', '--', 'LineWidth', 1.2)
-%             plot([mask.acoord(1) mask.maxl(1)], [mask.acoord(2), mask.maxl(2)], 'Color', [0 0 0], 'LineStyle', '--', 'LineWidth', 1.2)
-
-
-end
-
-
-function [fig] = JGR_meanrad(manu, auto, qing, preQ8, fig)
-    figure(fig)
-    [colorOrder] = get(gca, 'ColorOrder');
-    barColor = [0.8 0.8 0.8];
-    slct = auto.tab.date < datenum('1996', 'YYYY');
-    s1 = subplot(1, 2, 1);
-        cla
-        hold on
-%             plot(repmat(datenum('1854','YYYY'), 1, 2), [0 100], ':', 'Color', [0 0 0])
-%             plot(repmat(datenum('1997','YYYY'), 1, 2), [0 100], ':', 'Color', [0 0 0])
-            e1 = errorbar([manu.tab.date; auto.tab.date(slct)], [manu.tab.meandeltarad; auto.tab.meandeltarad(slct)] / 1000, ...
-                [manu.tab.meandeltaraderr; auto.tab.meandeltaraderr(slct)] / 1000, 'LineStyle', 'none', 'Color', barColor);
-%             m = plot(manu.tab.date, manu.tab.meandeltarad / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
-%             a = plot(auto.tab.date(slct), auto.tab.meandeltarad(slct) / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
-            f = plot(preQ8.tab.date, preQ8.tab.meandeltarad / 1000, 'o', 'MarkerSize', 4, 'MarkerEdgeColor', 'k','MarkerFaceColor', 'r');
-            plot(preQ8.deltaeval.xs, preQ8.deltaeval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
-        datetick('x', 'YYYY')
-        xlim([datenum('1840','YYYY') datenum('2010','YYYY')])
-        ylim([40 90])
-        params1 = {['rate = ', num2str(round(preQ8.deltaeval.m*365.25)/1000), ' \pm', num2str(round(preQ8.deltaeval.err*365.25,-1)/1000), ' km/yr'], ...
-            ['r^2 = ', num2str(round(preQ8.deltaeval.r2, 2))]};
-        format1 = sprintf('%s\n', params1{:});
-        annot1 = text(0.3, 0.1, format1(1:end-1), ...
-            'Color', [0 0 0], 'Parent', s1, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-        title('mean delta radius')
-        xlabel('year')
-        ylabel('mean delta radius (km)')
-        box on
-        set(gca, 'FontSize', 10, 'LineWidth', 1.5)
-    s3 = subplot(1, 2, 2);
-    manu.tab.qingint(1) = 0;
-    manu.tab.qingint(3) = NaN;
-        cla
-        hold on
-%             plot(repmat(datenum('1976','YYYY'), 1, 2), [0 35], ':', 'Color', [0 0 0])
-%             plot(repmat(datenum('1997','YYYY'), 1, 2), [0 35], ':', 'Color', [0 0 0])
-            e3 = errorbar([datenum('1855','YYYY'); manu.tab.date; auto.tab.date(slct)], [0; manu.tab.qingint; auto.tab.qingint(slct)] / 1000, ...
-                [2000; manu.tab.qinginterr; auto.tab.qinginterr(slct)] / 1000, 'LineStyle', 'none', 'Color', barColor);
-            m = plot(manu.tab.date, manu.tab.qingint / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
-            a = plot(auto.tab.date(slct), auto.tab.qingint(slct) / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
-            f = plot(qing.tab.date, qing.tab.qingint / 1000, 'o', 'MarkerSize', 4, 'MarkerEdgeColor', 'k','MarkerFaceColor', 'r');
-            plot(qing.inteval.xs, qing.inteval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
-        datetick('x', 'YYYY')
-        xlim([datenum('1970', 'YYYY') datenum('2000', 'YYYY')])
-        set(gca, 'XTick', datenum({'1975', '1980', '1985', '1990', '1995', '2000'}, 'YYYY'), 'XTickLabel', {'1975', '', '1985', '', '', '2000'})
-        ylim([0 40])
-        params3 = {['rate = ', num2str(round(qing.inteval.m*365.25,-1)/1000), ' \pm', num2str(round(qing.inteval.err*365.25,-1)/1000), ' km/yr'], ...
-            ['r^2 = ', num2str(round(qing.inteval.r2, 2))]};
-        format3 = sprintf('%s\n', params3{:});
-        annot3 = text(0.35, 0.1, format3(1:end-1), ...
-            'Color', [0 0 0], 'Parent', s3, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-        title('lobe length')
-        xlabel('year')
-        ylabel('intersection distance from datum (km)')
-        box on
-        set(gca, 'FontSize', 10, 'LineWidth', 1.5)
-    set(fig,'Visible', 'on');
-    set(fig, 'Pos', [100 100 800 400]);
-    set(fig, 'PaperPositionMode', 'auto')
-    print('-dpng', '-r300', './figs/JGR_shoreline_data.png');
-    print('-depsc','-r300','-painters', './figs/JGR_shoreline_data.eps');
-end
-
-
-function [fig] = all_data(manu, auto, qing, preQ8, Q8, mod, fig)
-    figure(fig)
-    [colorOrder] = get(gca,'ColorOrder');
-    
-    % mean delta radius
-    s1 = subplot(2, 3, 1);
-        cla
-        hold on
-            plot(repmat(datenum('1854','YYYY'), 1, 2), [0 70], ':', 'Color', [0 0 0])
-            plot(repmat(datenum('1997','YYYY'), 1, 2), [0 70], ':', 'Color', [0 0 0])
-            m = plot(manu.tab.date, manu.tab.meandeltarad / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(1, :));
-            a = plot(auto.tab.date, auto.tab.meandeltarad / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(2, :));
-            plot(preQ8.deltaeval.xs, preQ8.deltaeval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
-        legend([m a], {'manual', 'auto'}, 'Location', 'NorthWest')
-        datetick('x', 'YYYY')
-        xlim([datenum('1850','YYYY') datenum('2020','YYYY')])
-        % model parameters writing
-        params1 = {['rate = ', num2str(round(preQ8.deltaeval.m*365.25)), ' m/yr'], ...
-            ['r^2 = ', num2str(round(preQ8.deltaeval.r2, 2))]};
-        format1 = sprintf('%s\n', params1{:});
-        annot1 = text(0.5, 0.1, format1(1:end-1), ...
-            'Color', [0 0 0], 'Parent', s1, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-        title('mean delta radius')
-        xlabel('year')
-        ylabel('mean delta radius (km)')
-        box on
-        set(gca, 'LineWidth', 1.1, 'FontSize', 10, 'XColor', 'k', 'YColor', 'k')
-        
-    % qinshuigou lobe radius
-    s2 = subplot(2, 3, 2);
-        cla
-        hold on
-            plot(repmat(datenum('1976','YYYY'), 1, 2), [0 30], ':', 'Color', [0 0 0])
-            plot(repmat(datenum('1997','YYYY'), 1, 2), [0 30], ':', 'Color', [0 0 0])
-            plot(manu.tab.date, manu.tab.meanloberad / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(1, :))
-            plot(auto.tab.date, auto.tab.meanloberad / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(2, :))
-            plot(qing.radeval.xs, qing.radeval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
-        datetick('x', 'YYYY')
-        xlim([datenum('1950','YYYY') datenum('2020','YYYY')])
-        % model parameters writing
-        params2 = {['rate = ', num2str(round(qing.radeval.m*365.25)), ' m/yr'], ...
-            ['r^2 = ', num2str(round(qing.radeval.r2, 2))]};
-        format2 = sprintf('%s\n', params2{:});
-        annot2 = text(0.5, 0.1, format2(1:end-1), ...
-            'Color', [0 0 0], 'Parent', s2, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-        title('mean Qingshuigou lobe radius')
-        xlabel('year')
-        ylabel('mean lobe radius (km)')
-        box on
-        set(gca, 'LineWidth', 1.1, 'FontSize', 10, 'XColor', 'k', 'YColor', 'k')
-        
-    % qingshuigou lobe lengths
-    s3 = subplot(2, 3, 3);
-        cla
-        hold on
-            plot(repmat(datenum('1976','YYYY'), 1, 2), [0 35], ':', 'Color', [0 0 0])
-            plot(repmat(datenum('1997','YYYY'), 1, 2), [0 35], ':', 'Color', [0 0 0])
-            plot(repmat(max(mod.tab.date), 1, 2), [0 35], ':', 'Color', [0 0 0])
-            plot(manu.tab.date, manu.tab.qingint / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(1, :))
-            plot(auto.tab.date, auto.tab.qingint / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(2, :))
-            plot(qing.inteval.xs, qing.inteval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
-            plot(qing.retreateval.xs, qing.retreateval.ys / 1000, 'LineStyle', ':', 'LineWidth', 2, 'Color', [0 0 0])
-        datetick('x', 'YYYY')
-        xlim([datenum('1950','YYYY') datenum('2020','YYYY')])
-        % model (progradation) parameters writing
-        params = {['rate = ', num2str(round(qing.inteval.m*365.25)), ' m/yr'], ...
-            ['r^2 = ', num2str(round(qing.inteval.r2, 2))]};
-        format3 = sprintf('%s\n', params{:});
-        annot3 = text(0.5, 0.1, format3(1:end-1), ...
-            'Color', [0 0 0], 'Parent', s3, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-        % model (retreat) parameters writing
-        params = {['rate = ', num2str(round(qing.retreateval.m*365.25)), ' m/yr'], ...
-            ['r^2 = ', num2str(round(qing.retreateval.r2, 2))]};
-        format3 = sprintf('%s\n', params{:});
-        annot3 = text(0.5, 0.25, format3(1:end-1), ...
-            'Color', [0 0 0], 'Parent', s3, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-        title('Qingshuiguo lobe length')
-        xlabel('year')
-        ylabel('intersection distance from datum (km)')
-        box on
-        set(gca, 'LineWidth', 1.1, 'FontSize', 10, 'XColor', 'k', 'YColor', 'k')
-        
-    % Q8 lobe length
-    s4 = subplot(2, 3, 4);
-        cla
-        hold on
-        plot(repmat(min(Q8.tab.date), 1, 2), [0 35], ':', 'Color', [0 0 0])
-        plot(repmat(max(Q8.tab.date), 1, 2), [0 35], ':', 'Color', [0 0 0])
-        plot(repmat(max(mod.tab.date), 1, 2), [0 35], ':', 'Color', [0 0 0])
-        plot(manu.tab.date, manu.tab.Q8int / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(1, :))
-        plot(auto.tab.date, auto.tab.Q8int / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(2, :))
-        plot(Q8.inteval.xs, Q8.inteval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
-        plot(Q8.retreateval.xs, Q8.retreateval.ys / 1000, 'LineStyle', ':', 'LineWidth', 2, 'Color', [0 0 0])
-        datetick('x', 'YYYY')
-        xlim([datenum('1990','YYYY') datenum('2020','YYYY')])
-        % model (progradation) parameters writing
-        params = {['rate = ', num2str(round(Q8.inteval.m*365.25)), ' m/yr'], ...
-            ['r^2 = ', num2str(round(Q8.inteval.r2, 2))]};
-        format3 = sprintf('%s\n', params{:});
-        annot3 = text(0.5, 0.1, format3(1:end-1), ...
-            'Color', [0 0 0], 'Parent', s4, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-        % model (retreat) parameters writing
-        params = {['rate = ', num2str(round(Q8.retreateval.m*365.25)), ' m/yr'], ...
-            ['r^2 = ', num2str(round(Q8.retreateval.r2, 2))]};
-        format3 = sprintf('%s\n', params{:});
-        annot3 = text(0.5, 0.3, format3(1:end-1), ...
-            'Color', [0 0 0], 'Parent', s4, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-        title('Q8 lobe length')
-        xlabel('year')
-        ylabel('intersection distance from datum (km)')
-        box on
-        set(gca, 'LineWidth', 1.1, 'FontSize', 10, 'XColor', 'k', 'YColor', 'k')
-        
-    % modern lobe lengths
-    s5 = subplot(2, 3, 5);
-        cla
-        hold on
-        plot(repmat(max(Q8.tab.date), 1, 2), [0 35], ':', 'Color', [0 0 0])
-        plot(repmat(max(mod.tab.date), 1, 2), [0 35], ':', 'Color', [0 0 0])
-        plot(manu.tab.date, manu.tab.modint / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(1, :))
-        plot(auto.tab.date, auto.tab.modint / 1000, 'o', 'MarkerSize', 4, 'Color', colorOrder(2, :))
-        plot(mod.inteval.xs, mod.inteval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
-        datetick('x', 'YYYY')
-        xlim([datenum('1990','YYYY') datenum('2020','YYYY')])
-        params = {['rate = ', num2str(round(mod.inteval.m*365.25)), ' m/yr'], ...
-            ['r^2 = ', num2str(round(mod.inteval.r2, 2))]};
-        format3 = sprintf('%s\n', params{:});
-        annot3 = text(0.5, 0.1, format3(1:end-1), ...
-            'Color', [0 0 0], 'Parent', s5, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-        title('modern lobe length')
-        xlabel('year')
-        ylabel('intersection distance from datum (km)')
-        box on
-        set(gca, 'LineWidth', 1.1, 'FontSize', 10, 'XColor', 'k', 'YColor', 'k')
-        
-    set(fig,'Visible', 'on');
-    set(fig, 'Pos', [100 100 1200 800]);
-    set(fig, 'PaperPositionMode', 'auto')
-    
-    print('-dpng', '-r300', './all_shoreline_data.png');
-    print('-depsc', '-painters', '-r300', './all_shoreline_data.eps');
-    
-    set(fig, 'PaperUnits', 'Points', 'PaperSize', [fig.Position(3), fig.Position(4)])
-    print('-dpdf', '-r300', './all_shoreline_data.pdf');
-    
-end
-
-
-function [fig] = XOM_meanrad(manu, auto, lobe, modelset, fig)
-    figure(fig)
-    [colorOrder] = get(gca, 'ColorOrder');
-    barColor = [0.8 0.8 0.8];
-    s1 = subplot(1, 2, 1);
-        cla
-        hold on
-            plot(repmat(datenum('1854','YYYY'), 1, 2), [0 100], ':', 'Color', [0 0 0])
-            plot(repmat(datenum('1997','YYYY'), 1, 2), [0 100], ':', 'Color', [0 0 0])
-            e1 = errorbar([manu.tab.date; auto.tab.date], [manu.tab.meandeltarad; auto.tab.meandeltarad] / 1000, ...
-                [manu.tab.meandeltaraderr; auto.tab.meandeltaraderr] / 1000, 'LineStyle', 'none', 'Color', barColor);
-            m = plot(manu.tab.date, manu.tab.meandeltarad / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
-            a = plot(auto.tab.date, auto.tab.meandeltarad / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
-            f = plot(modelset.tab.date, modelset.tab.meandeltarad / 1000, 'o', 'MarkerSize', 4, 'MarkerEdgeColor', 'k','MarkerFaceColor', 'r');
-            plot(modelset.deltaeval.xs, modelset.deltaeval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
-        datetick('x', 'YYYY')
-        xlim([datenum('1850','YYYY') datenum('2020','YYYY')])
-        params1 = {['rate = ', num2str(round(modelset.deltaeval.m*365.25)/1000), ' \pm', num2str(round(modelset.deltaeval.err*365.25,-1)/1000), ' km/yr'], ...
-            ['r^2 = ', num2str(round(modelset.deltaeval.r2, 2))]};
-        format1 = sprintf('%s\n', params1{:});
-        annot1 = text(0.3, 0.1, format1(1:end-1), ...
-            'Color', [0 0 0], 'Parent', s1, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-        title('mean delta radius')
-        xlabel('year')
-        ylabel('mean delta radius (km)')
-        box on
-        set(gca, 'FontSize', 10, 'LineWidth', 1.5)
-    s3 = subplot(1, 2, 2);
-    manu.tab.qingint(1) = 0;
-    manu.tab.qingint(3) = NaN;
-        cla
-        hold on
-            plot(repmat(datenum('1976','YYYY'), 1, 2), [0 35], ':', 'Color', [0 0 0])
-            plot(repmat(datenum('1997','YYYY'), 1, 2), [0 35], ':', 'Color', [0 0 0])
-            e3 = errorbar([manu.tab.date; auto.tab.date], [manu.tab.qingint; auto.tab.qingint] / 1000, ...
-                [manu.tab.qinginterr; auto.tab.qinginterr] / 1000, 'LineStyle', 'none', 'Color', barColor);
-            m = plot(manu.tab.date, manu.tab.qingint / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
-            a = plot(auto.tab.date, auto.tab.qingint / 1000, 'o', 'MarkerSize', 4, 'Color', [0.3 0.3 0.3]);
-            f = plot(lobe.tab.date, lobe.tab.qingint / 1000, 'o', 'MarkerSize', 4, 'MarkerEdgeColor', 'k','MarkerFaceColor', 'r');
-            plot(lobe.inteval.xs, lobe.inteval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0])
-        datetick('x', 'YYYY')
-        xlim([datenum('1960', 'YYYY') datenum('2020', 'YYYY')])
-        set(gca, 'XTick', [datenum('1975', 'YYYY') datenum('2000', 'YYYY')], 'XTickLabel', {'1975', '2000'})
-        ylim([ 0 35])
-        params3 = {['rate = ', num2str(round(lobe.inteval.m*365.25,-1)/1000), ' \pm', num2str(round(lobe.inteval.err*365.25,-1)/1000), ' km/yr'], ...
-            ['r^2 = ', num2str(round(lobe.inteval.r2, 2))]};
-        format3 = sprintf('%s\n', params3{:});
-        annot3 = text(0.35, 0.1, format3(1:end-1), ...
-            'Color', [0 0 0], 'Parent', s3, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-        title('lobe length')
-        xlabel('year')
-        ylabel('intersection distance from datum (km)')
-        box on
-        set(gca, 'FontSize', 10, 'LineWidth', 1.5)
-    set(fig,'Visible', 'on');
-    set(fig, 'Pos', [100 100 800 400]);
-    set(fig, 'PaperPositionMode', 'auto')
-    print('-dpng', '-r300', './figs/XOM_shoreline_data.png');
-    print('-depsc','-r300','-painters', './figs/XOM_shoreline_data.eps');
 end
 
 
