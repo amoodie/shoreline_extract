@@ -57,7 +57,8 @@ function explore_shorelineset()
         % note that in this example case, the data in all.tab is identical to qing.tab
     
     % make the models
-    delta.model = make_rate(qing.tab, 'qingint ~ date');
+    delta.model = make_rate(all.tab, 'deltaradius ~ date');
+    qing.model = make_rate(qing.tab, 'qingint ~ date');
     
     % demonstration of intersection extraction (last in loop)
     figure();
@@ -88,23 +89,39 @@ function explore_shorelineset()
     
     % demonstration of the rate plot
     figure()
-    subplot(1, 2, 1); hold on;
-        plot(repmat(datenum('1976','YYYY'), 1, 2), [0 70], ':', 'Color', [0 0 0]) % lower bound of qingshuigou development
-        plot(repmat(datenum('1997','YYYY'), 1, 2), [0 70], ':', 'Color', [0 0 0]) % upper bound of qingshuigou development
-        plot(arrayfun(@(x) x.meta.date, data), arrayfun(@(x) x.qingint.distalong, data), 'r.', 'MarkerSize', 10) % plot the data
-        plot(preQ8.deltaeval.xs, preQ8.deltaeval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0]) % plot the model
+    s1 = subplot(1, 2, 1); hold on;
+        plot(all.tab.date, all.tab.deltaradius ./ 1000, 'r.', 'MarkerSize', 10) % plot the data
+        plot(delta.model.xs, delta.model.ys ./ 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0]) % plot the model
         datetick('x', 'YYYY')
-        xlim([datenum('1970','YYYY') datenum('2000','YYYY')])
-        params1 = {['rate = ', num2str(round(preQ8.deltaeval.m*365.25)), ' m/yr'], ...
-            ['r^2 = ', num2str(round(preQ8.deltaeval.r2, 2))]};
+%         xlim([datenum('1970','YYYY') datenum('2000','YYYY')])
+        params1 = {['rate = ', num2str(round(delta.model.m * 365.25)), ' m/yr'], ...
+            ['r^2 = ', num2str(round(delta.model.r2, 2))]};
         format1 = sprintf('%s\n', params1{:});
         annot1 = text(0.5, 0.1, format1(1:end-1), ...
             'Color', [0 0 0], 'Parent', s1, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
-        title('mean delta radius')
+%         title('YR delta development')
         xlabel('year')
         ylabel('mean delta radius (km)')
         box on
-        set(gca, 'LineWidth', 1.1, 'FontSize', 10, 'XColor', 'k', 'YColor', 'k')
+        set(gca, 'LineWidth', 1.1, 'FontSize', 10)
+    s2 = subplot(1, 2, 2); hold on;
+        plot(repmat(datenum('1976','YYYY'), 1, 2), [0 70], ':', 'Color', [0 0 0]) % lower bound of qingshuigou development
+        plot(repmat(datenum('1997','YYYY'), 1, 2), [0 70], ':', 'Color', [0 0 0]) % upper bound of qingshuigou development
+        plot(qing.tab.date, qing.tab.qingint ./ 1000, 'r.', 'MarkerSize', 10) % plot the data
+        plot(qing.model.xs, qing.model.ys ./ 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0]) % plot the model
+        datetick('x', 'YYYY')
+        xlim([datenum('1970','YYYY') datenum('2000','YYYY')])
+        params2 = {['rate = ', num2str(round(qing.model.m * 365.25)), ' m/yr'], ...
+            ['r^2 = ', num2str(round(qing.model.r2, 2))]};
+        format2 = sprintf('%s\n', params2{:});
+        annot2 = text(0.5, 0.1, format2(1:end-1), ...
+            'Color', [0 0 0], 'Parent', s2, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
+%         title('Qingshuigou development')
+        xlabel('year')
+        ylabel('distance downstream from datum (km)')
+        box on
+        set(gca, 'LineWidth', 1.1, 'FontSize', 10)
+    set(gcf, 'Pos', [50 100 800 400], 'PaperPositionMode', 'auto')
     
 end
 
