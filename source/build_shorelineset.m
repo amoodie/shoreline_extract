@@ -310,23 +310,30 @@ end
 
 
 function [thresh] = get_threshold(img)
-    img = im2double(img);
-    img_long = reshape(img, size(img,1) * size(img,2), 1);
-    [Hcount, Hbin] = histcounts(img_long, 40);
-    dx = Hbin(2) - Hbin(1);
-    dcdx = (Hcount(2:end) - Hcount(1:end-1)) ./ dx;
-    [maxy, maxidx] = max(Hcount);
-    range = [maxidx find(dcdx(maxidx:end)>=0, 1, 'first')+maxidx-2];
-    m = mean(dcdx(range(1):range(2)));
-    maxx = maxidx*dx;
-    yint = maxy - (m * (maxx));
-    xint = (-1*yint)/m;
-    thresh = xint;
+    %get_threshold gets the threshold used to binarize the image
+    %
+    % works following the method described in Moodie et al.
+    %
+    
+    img = im2double(img); % convert to double type for math manipulation
+    img_long = reshape(img, size(img,1) * size(img,2), 1); % make long for histogram
+    [Hcount, Hbin] = histcounts(img_long, 40); % get histogram count of intensity
+    dx = Hbin(2) - Hbin(1); % histogram spacing
+    dcdx = (Hcount(2:end) - Hcount(1:end-1)) ./ dx; % spatial gradient in count
+    [maxy, maxidx] = max(Hcount); % value and index of max count
+    range = [maxidx find(dcdx(maxidx:end)>=0, 1, 'first')+maxidx-2]; % bin range from max to first upslope
+    m = mean(dcdx(range(1):range(2))); % mean slope across the range
+    maxx = maxidx*dx; % max x location to start from
+    yint = maxy - (m * (maxx)); % solve for y intercept of line
+    xint = (-1*yint)/m; % project down to x axis
+    thresh = xint; % that's the intensity threshold
 end
 
 
 function [line] = get_ordered(pointlist)
     %get_ordered sorts the points in the list into a sequential order along the shore
+    %
+    
     used = false(size(pointlist, 1), 1);
     cnt = 1;
     last = cnt;
