@@ -45,6 +45,20 @@ function explore_shorelineset()
     
     end
     
+    % convert data into a single table for more convenient manipulation
+    %   this step requires manually adding items to the table with the 
+    %   data you want to use in analysis
+    table_vars = {'date', 'deltaradius', 'qingint'};
+    all.tab = array2table(horzcat(arrayfun(@(x) x.meta.date, data), arrayfun(@(x) x.radius.mean, data), arrayfun(@(x) x.qingint.distalong, data)), ...
+        'VariableNames', table_vars);    
+    
+    % convert data into tables spanning time ranges for convenience of building models
+    qing.tab = make_rangetable(all, [datenum('1976','YYYY'), datenum('07/31/1997','mm/dd/YYYY')]); % only data from qingshuigou lobe development
+        % note that in this example case, the data in all.tab is identical to qing.tab
+    
+    % make the models
+    delta.model = make_rate(qing.tab, 'qingint ~ date');
+    
     % demonstration of intersection extraction (last in loop)
     figure();
     subplot(2, 4, [1:2 5:6]); hold on;
@@ -75,7 +89,22 @@ function explore_shorelineset()
     % demonstration of the rate plot
     figure()
     subplot(1, 2, 1); hold on;
-    plot(arrayfun(@(x) x.meta.date, data), arrayfun(@(x) x.qingint.distalong, data), 'ko')
+        plot(repmat(datenum('1976','YYYY'), 1, 2), [0 70], ':', 'Color', [0 0 0]) % lower bound of qingshuigou development
+        plot(repmat(datenum('1997','YYYY'), 1, 2), [0 70], ':', 'Color', [0 0 0]) % upper bound of qingshuigou development
+        plot(arrayfun(@(x) x.meta.date, data), arrayfun(@(x) x.qingint.distalong, data), 'r.', 'MarkerSize', 10) % plot the data
+        plot(preQ8.deltaeval.xs, preQ8.deltaeval.ys / 1000, 'LineStyle', '--', 'LineWidth', 1.2, 'Color', [0 0 0]) % plot the model
+        datetick('x', 'YYYY')
+        xlim([datenum('1970','YYYY') datenum('2000','YYYY')])
+        params1 = {['rate = ', num2str(round(preQ8.deltaeval.m*365.25)), ' m/yr'], ...
+            ['r^2 = ', num2str(round(preQ8.deltaeval.r2, 2))]};
+        format1 = sprintf('%s\n', params1{:});
+        annot1 = text(0.5, 0.1, format1(1:end-1), ...
+            'Color', [0 0 0], 'Parent', s1, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
+        title('mean delta radius')
+        xlabel('year')
+        ylabel('mean delta radius (km)')
+        box on
+        set(gca, 'LineWidth', 1.1, 'FontSize', 10, 'XColor', 'k', 'YColor', 'k')
     
     
 %     % make tables
@@ -181,7 +210,7 @@ function [intersection] = get_intersection(shoreline, line, res)
                 
 end
 
-function [ratemdl] = make_ratemdl(table) 
+function [ratemdl] = make_rate(table, formula) 
     preQ8.deltamodel = fitlm(preQ8.tab, 'meandeltarad ~ date');
     preQ8.deltaeval.b = preQ8.deltamodel.Coefficients.Estimate(1);
     preQ8.deltaeval.m = preQ8.deltamodel.Coefficients.Estimate(2);
@@ -194,19 +223,18 @@ function [ratemdl] = make_ratemdl(table)
 end
 
 
-function [table] = make_table(data)
-    datamat = horzcat( cell2mat(data.data(:,1)), cell2mat(data.deltarad(:,3)), cell2mat(data.deltarad(:,4)), ...
-        cell2mat(data.loberad(:,3)), cell2mat(data.loberad(:,4)), cell2mat(data.qingint(:,3)), cell2mat(data.qingint(:,4)), ...
-        cell2mat(data.Q8int(:,3)), cell2mat(data.Q8int(:,4)), cell2mat(data.modint(:,3)), cell2mat(data.modint(:,4)) );
-    table = array2table(datamat, ...
-        'VariableNames', {'date', 'meandeltarad', 'meandeltaraderr', 'meanloberad', 'meanloberaderr', ...
-        'qingint', 'qinginterr', 'Q8int', 'Q8interr', 'modint', 'modinterr'});
-end
-
-function [table] = make_rangetable(manu, auto, range)
-    keep.manu = and(manu.tab.date >= range(1), manu.tab.date <= range(2));
-    keep.auto = and(auto.tab.date >= range(1), auto.tab.date <= range(2));
-    table = vertcat(manu.tab(keep.manu, :), auto.tab(keep.auto, :));
+function [table] = make_rangetable(all, range)
+    %make_rangetable subsets the total dataset, yielding only data within date range
+    %
+    % inputs:
+    %   all = the total datatable
+    %   range = a two element vector with datenum cooresponding to lower 
+    %       and upper bound of data you want retained
+    %
+    
+    keep = and(all.tab.date >= range(1), all.tab.date <= range(2));
+    table = all.tab(keep.manu, :);
+    
 end
 
 function [mask] = make_mask(acoord)
