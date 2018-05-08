@@ -94,13 +94,6 @@ function [] = build_shorelineset()
             plot_RGB(R_imgname, G_imgname, B_imgname, meta)
         end
         
-        % make a movie?
-%         [fig] = make_plot(thresh_crop, shoreline_idx, i, meta);
-%         savename = sprintf('./fig_output/fig%03d.png', i);
-%         pause(0.2)
-%         print(fig, savename, '-dpng', '-r200', '-opengl') % save file
-%         close(fig)
-        
         % write out shoreline data to .mat file
         save(fullfile( '..', 'output', strcat('shoreline_', datestr(meta.date, 'YYYY-mm-dd'), '.mat') ), 'shoreline')
         
@@ -333,13 +326,14 @@ end
 
 
 function [line] = get_ordered(pointlist)
+    %get_ordered sorts the points in the list into a sequential order along the shore
     used = false(size(pointlist, 1), 1);
     cnt = 1;
     last = cnt;
     used(last) = true;
     line(cnt, :) = pointlist(cnt, :);
     lastdist = 0;
-    while lastdist <= 60;
+    while lastdist <= 60
         used(last) = true;
         
         distances = sqrt(((pointlist(last, 1) - pointlist(:, 1)).^2 + (pointlist(last, 2) - pointlist(:, 2)).^2));
@@ -368,7 +362,7 @@ function plot_RGB(R_imgname, G_imgname, B_imgname, meta)
     [R_adj] = imadjust(R_crop, stretchlim(R_crop, clip), [0 1], 1); % increase image contrast
     [G_adj] = imadjust(G_crop, stretchlim(G_crop, clip), [0 1], 1);
     [B_adj] = imadjust(B_crop, stretchlim(B_crop, clip), [0 1], 1);
-    RGB = cat(3, R_crop, G_crop, B_crop);
+    RGB = cat(3, R_adj, G_adj, B_adj);
         
     figure()
     imshow(RGB)
