@@ -48,7 +48,7 @@ A branch of the repository without the data is also available, for a reduced fil
 This version can be cloned with:
 
 ```
-git clone
+git clone -b release https://git@github.com/amoodie/shoreline_extract.git
 ```
 
 
