@@ -57,17 +57,17 @@ git clone
 A tree of the default branch, simplified for brevity, is produced below
 ```
 .
-├── data
+├── data/
 │   ├── LT41210341989028XXX02
 │   ├── LT51210341985329HAJ00
 │   ├── LT51210341992317HAJ00
 │   ├── LT51210341995357CLT00
 │   ├── empty.txt
 │   └── qinshuigou_channelline.csv
-├── output
+├── output/
 │   └── empty.txt
 ├── private/
-├── source
+├── source/
 │   ├── build_shorelineset.m
 │   └── explore_shorelineset.m
 ├── LICENSE.txt
