@@ -29,3 +29,7 @@ output/*
 
 # don't sync data because it's too big
 data/*
+
+# don't sync some image file formats
+private/*.eps
+private/*.svg

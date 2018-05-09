@@ -83,7 +83,7 @@ function [] = build_shorelineset()
             R_imgname = strcat(meta.name, '_B', meta.bandset(2), '.TIF');
             G_imgname = strcat(meta.name, '_B', meta.bandset(3), '.TIF');
             B_imgname = strcat(meta.name, '_B', meta.bandset(4), '.TIF');
-            plot_RGB(R_imgname, G_imgname, B_imgname, meta)
+            [RGB_fig] = plot_RGB(R_imgname, G_imgname, B_imgname, meta);
         end
         
         % write out shoreline data to .mat file
@@ -349,7 +349,7 @@ function [line] = get_ordered(pointlist)
 end
 
 
-function plot_RGB(R_imgname, G_imgname, B_imgname, meta)
+function [thefig] = plot_RGB(R_imgname, G_imgname, B_imgname, meta)
     %plot_RGB manipulates and plots the RGB image
     [R_img] = imread(char(fullfile(meta.imagefolder, R_imgname))); % open red image
     [G_img] = imread(char(fullfile(meta.imagefolder, G_imgname)));
@@ -363,7 +363,7 @@ function plot_RGB(R_imgname, G_imgname, B_imgname, meta)
     [B_adj] = imadjust(B_crop, stretchlim(B_crop, clip), [0.2 0.8], 1);
     RGB = cat(3, R_adj, G_adj, B_adj);
         
-    figure()
+    thefig = figure();
     imshow(RGB)
     title(datestr(meta.date))
     

@@ -104,7 +104,7 @@ function explore_shorelineset()
         params1 = {['rate = ', num2str(round(delta.model.m * 365.25)), ' m/yr'], ...
             ['r^2 = ', num2str(round(delta.model.r2, 2))]};
         format1 = sprintf('%s\n', params1{:});
-        annot1 = text(0.1, 0.1, format1(1:end-1), ...
+        text(0.1, 0.1, format1(1:end-1), ...
             'Color', [0 0 0], 'Parent', s1, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
         title('YR delta development')
         xlabel('year')
@@ -121,7 +121,7 @@ function explore_shorelineset()
         params2 = {['rate = ', num2str(round(qing.model.m * 365.25)), ' m/yr'], ...
             ['r^2 = ', num2str(round(qing.model.r2, 2))]};
         format2 = sprintf('%s\n', params2{:});
-        annot2 = text(0.5, 0.1, format2(1:end-1), ...
+        text(0.5, 0.1, format2(1:end-1), ...
             'Color', [0 0 0], 'Parent', s2, 'units', 'normalized', 'BackgroundColor', [1 1 1]);
         title('Qingshuigou lobe development')
         xlabel('year')
@@ -129,6 +129,10 @@ function explore_shorelineset()
         box on
         set(gca, 'LineWidth', 1.1, 'FontSize', 10)
     set(gcf, 'Pos', [50 100 800 400], 'PaperPositionMode', 'auto')
+    
+    % output the data to a folder
+    datatable = all.tab; %#ok<NASGU>
+    save(fullfile( '..', 'output', 'processed_data.mat'), 'datatable');
     
 end
 
@@ -162,8 +166,13 @@ function [intersection] = get_intersection(shoreline, line, res)
     %get_intersection returns an intersection object
     %
 
+    % number of points in the shoreline
     npts = size(shoreline, 1);
-%     intersection = cell(size(shoreline, 1), 4);
+    
+    % preallocate
+    mindists = NaN(npts, 1);
+    mindistsidx = NaN(npts, 1);
+    
     % loop through every point in shoreline to determine if it intersects with line
     for i = 1:npts
         % calculate the distance from this shoreline pt to every point in line
@@ -260,6 +269,9 @@ function [data] = load_data(directory)
     else
         countfiles = length(shorelinefiles);
     end
+    
+    % preallocate
+    data = cell(countfiles, 2);
     
     % loop through and load data into a cell array
     for i = 1:countfiles

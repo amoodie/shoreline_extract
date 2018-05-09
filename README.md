@@ -49,16 +49,22 @@ git clone
 A tree of the default branch, simplified for brevity, is produced below
 ```
 .
-├── data/
+├── data
+│   ├── LT41210341989028XXX02
+│   ├── LT51210341985329HAJ00
+│   ├── LT51210341992317HAJ00
+│   ├── LT51210341995357CLT00
 │   ├── empty.txt
 │   └── qinshuigou_channelline.csv
-├── output/
+├── output
+│   └── empty.txt
 ├── private/
-├── source/
+├── source
 │   ├── build_shorelineset.m
 │   └── explore_shorelineset.m
 ├── LICENSE.txt
 └── README.md
+
 ```
 
 The main functions live in the `source` folder.
@@ -70,6 +76,8 @@ This folder contains two files:
 These files make up the application, and should be run sequentially. 
 The `build_shorelineset.m` file processes the raw data into a collection of data files that contain xy coordinates of the shoreline.
 Then, `explore_shorelineset.m` manipulates the extracted shorelines to determine usable data from the shoreline trajectories.
+After running these scripts, the `output` folder will be populated with the shoreline location and processed data.
+
 
 The data used in developing the script are provided as part of this repository, but you can also obtain them (or others) for yourself from the Level 1 Landsat data at the [USGS Earth Explorer website](https://earthexplorer.usgs.gov/).
 There were four scenes used to make the images and plots in this readme:
@@ -81,9 +89,27 @@ There were four scenes used to make the images and plots in this readme:
 
 You can download these scenes explicitly, or any other scenes that fall into the `WRS_PATH = 121` and `WRS_ROW = 034` flight path from any time.
 
-These files should be placed into the `data` folder as uncompressed folders (see the file tree above for where the folders should be located).
+These files should be placed into the `data` folder _as uncompressed folders_ (see the file tree above for where the folders should be located).
 Actually, the folders could be placed anywhere, if the `meta.directory` parameter in `build_shorelineset.m` is changed to the appropriate path.
 
+The `private` folder contains the images and movies used in this documentation.
+
+## Running the program
+
+Once the data are properly organized into the `data` folder, you can open your Matlab GUI and navigate to and open `build_shorelineset.m`.
+See the parameter list at the top of the script, and make any modifications if necessary.
+Run the program.
+
+After finishing this script, you can 
+
+
+
+## Documentation
+
+As of 05/09/2018, the only documentation to this program is this file.
+However, the code is pretty well commented, and any changes you need to make should be pretty easy.
+
+If there are actually people hoping to use this code, I will add more documentation support for both the program files, and potentially further split the files into function files for easier documentation.
 
 
 
