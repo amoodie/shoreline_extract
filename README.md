@@ -24,49 +24,54 @@ These limitations mainly occur in the context of image cropping and shoreline ex
 The code will probably not work out of the box when applied to another system because of these limitations, __BUT__ with a minimal amount of work (the authors are happy to help!) it could be made to work.
 
 
-## Using the code
+## Using the program
 
+### Obtain the source code
+
+The code should be downloaded by cloning this repository. 
+__WARNING:__ the default branch of this repository is almost 1 GB in size, because it contains 4 Landsat Level 1 products (though these have also been stripped to only necessary parts to reduce their size).
+
+This default branch can be cloned with:
+
+```
+git clone https://github.com/amoodie/shoreline_extract.git
+```
+
+A branch of the repository without the data is also available, for a reduced file size or if you wish to use your own data with the codebase.
+This version can be cloned with:
+
+```
+git clone
+```
+
+### File/folder structure
+
+A tree of the default branch, simplified for brevity, is produced below
 ```
 .
 ├── data/
 │   ├── empty.txt
-│   ├── LT41210341989028XXX02/
-│   ├── LT51210341985329HAJ00/
-│   ├── LT51210341992317HAJ00/
-│   ├── LT51210341995357CLT00/
 │   └── qinshuigou_channelline.csv
-├── LICENSE.txt
 ├── output/
-│   ├── meta_1985-11-25.mat
-│   ├── meta_1989-01-28.mat
-│   ├── meta_1992-11-12.mat
-│   ├── meta_1995-12-23.mat
-│   ├── shoreline_1985-11-25.csv
-│   ├── shoreline_1985-11-25.mat
-│   ├── shoreline_1989-01-28.csv
-│   ├── shoreline_1989-01-28.mat
-│   ├── shoreline_1992-11-12.csv
-│   ├── shoreline_1992-11-12.mat
-│   ├── shoreline_1995-12-23.csv
-│   └── shoreline_1995-12-23.mat
 ├── private/
-├── README.md
-└── source/
-    ├── build_shorelineset.m
-    └── explore_shorelineset.m
+├── source/
+│   ├── build_shorelineset.m
+│   └── explore_shorelineset.m
+├── LICENSE.txt
+└── README.md
 ```
 
-The main functions live in the `source` folder. 
+The main functions live in the `source` folder.
 This folder contains two files:
 
 * `build_shorelineset.m`
 * `explore_shorelineset.m`
 
-These files are the bulk of the application, and should be run sequentially in the order described. 
+These files make up the application, and should be run sequentially. 
 The `build_shorelineset.m` file processes the raw data into a collection of data files that contain xy coordinates of the shoreline.
+Then, `explore_shorelineset.m` manipulates the extracted shorelines to determine usable data from the shoreline trajectories.
 
-__The Github repository does not contain the data used to run the script!!__
-You will need to download the Level 1 Landsat data from the [USGS Earth Explorer website](https://earthexplorer.usgs.gov/).
+The data used in developing the script are provided as part of this repository, but you can also obtain them (or others) for yourself from the Level 1 Landsat data at the [USGS Earth Explorer website](https://earthexplorer.usgs.gov/).
 There were four scenes used to make the images and plots in this readme:
 
 * LT51210341985329HAJ00
@@ -77,7 +82,8 @@ There were four scenes used to make the images and plots in this readme:
 You can download these scenes explicitly, or any other scenes that fall into the `WRS_PATH = 121` and `WRS_ROW = 034` flight path from any time.
 
 These files should be placed into the `data` folder as uncompressed folders (see the file tree above for where the folders should be located).
-Actually, the folders could be placed anywhere, if the `build_shorelineset.m` code parameter `meta.directory` is changed.
+Actually, the folders could be placed anywhere, if the `meta.directory` parameter in `build_shorelineset.m` is changed to the appropriate path.
+
 
 
 

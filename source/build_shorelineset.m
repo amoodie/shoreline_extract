@@ -21,8 +21,7 @@ function [] = build_shorelineset()
     meta.make_RGB = true;
     %
     % what are the coordinates for cropping to the delta extent
-    meta.deltaULcoord = [633497, 4236964]; 
-%     deltacropDim = [3975, 3790];
+    meta.deltaULcoord = [633497, 4236964];
     meta.deltaLRcoord = [713380, 4162227];
     meta.crop_pts = [meta.deltaULcoord, meta.deltaLRcoord];
     meta.deltaLLcoord = [meta.deltaULcoord(1), meta.deltaLRcoord(2)]; % apex of the delta for cropping
@@ -35,17 +34,10 @@ function [] = build_shorelineset()
     direcoriesBool = [listing.isdir]; % logical of directories only
     folders = cellstr(  vertcat( listing(direcoriesBool).name )  ); % list of folder names only
     countfolders = length(folders);
-    
-    % initialize some lists
-    names = cell(countfolders,1);       % name of images
-    dates = cell(countfolders,1);       % dates of images
-    clouds = NaN(countfolders,1);       % cloud % of images
-    outputs = NaN(countfolders,8);      % output dataset
 
     % loop through all the folder first to generate some metadata for sorting
-    %     sort is important for making a movie
+    %     sort is important for making a movie if desired
     [sortidx, meta_sort] = get_sortorder(meta, folders, countfolders, meta.directory);
-    folders_sort = folders(sortidx); % rearange folders into this order for main loop
     
     % loop to process image --> shoreline 
     for i = 1:countfolders
@@ -366,13 +358,14 @@ function plot_RGB(R_imgname, G_imgname, B_imgname, meta)
     [G_crop] = crop_image(G_img, meta.ULcoord, meta.deltaULcoord, meta.cropDim, meta.res); 
     [B_crop] = crop_image(B_img, meta.ULcoord, meta.deltaULcoord, meta.cropDim, meta.res); 
     clip = [0.2, 0.8];
-    [R_adj] = imadjust(R_crop, stretchlim(R_crop, clip), [0 1], 1); % increase image contrast
-    [G_adj] = imadjust(G_crop, stretchlim(G_crop, clip), [0 1], 1);
-    [B_adj] = imadjust(B_crop, stretchlim(B_crop, clip), [0 1], 1);
+    [R_adj] = imadjust(R_crop, stretchlim(R_crop, clip), [0.2 0.8], 1); % increase image contrast
+    [G_adj] = imadjust(G_crop, stretchlim(G_crop, clip), [0.2 0.8], 1);
+    [B_adj] = imadjust(B_crop, stretchlim(B_crop, clip), [0.2 0.8], 1);
     RGB = cat(3, R_adj, G_adj, B_adj);
         
     figure()
     imshow(RGB)
+    title(datestr(meta.date))
     
 end
 
