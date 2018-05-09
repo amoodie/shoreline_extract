@@ -4,11 +4,16 @@ Matlab scripts for extracting subaerial delta shoreline from a collection of Lan
 
 Simplified demonstration version of the code used in Moodie et al. to make the shoreline traces and determine the rates of delta development of the Yellow River delta.
 
+![demo image](./private/header_image.png "demo")
+
+
 
 ## Dependencies
 
 This code was written with Matlab 2017b on Ubuntu 16.04. 
 It has intentionally been written to be OS agnostic, but does depend on Matlab 2017 or newer.
+
+
 
 ## Limitations
 
@@ -19,12 +24,14 @@ These limitations mainly occur in the context of image cropping and shoreline ex
 
 * the limits of cropping are explicitly defined in the code
 * a padding operation assumes land is in the lower left of the image
-* some size parameters in shoreline extraction may need to be tweeked
+* some size parameters in shoreline extraction may need to be tweaked
 
 The code will probably not work out of the box when applied to another system because of these limitations, __BUT__ with a minimal amount of work (the authors are happy to help!) it could be made to work.
 
 
+
 ## Using the program
+
 
 ### Obtain the source code
 
@@ -43,6 +50,7 @@ This version can be cloned with:
 ```
 git clone
 ```
+
 
 ### File/folder structure
 
@@ -94,13 +102,19 @@ Actually, the folders could be placed anywhere, if the `meta.directory` paramete
 
 The `private` folder contains the images and movies used in this documentation.
 
+
+
 ## Running the program
 
 Once the data are properly organized into the `data` folder, you can open your Matlab GUI and navigate to and open `build_shorelineset.m`.
 See the parameter list at the top of the script, and make any modifications if necessary.
 Run the program.
 
-After finishing this script, you can 
+After finishing this script, you can navigate to and open the `explore_shorelineset.m` script.
+This script can be run as is, assuming you have not changes the data output location from the previous script.
+This will produce a demonstration plot of the shoreline intersection routine and the resulting data from all the shorelines.
+
+![demo image](./private/processed_results.png "results of demo")
 
 
 
@@ -112,9 +126,22 @@ However, the code is pretty well commented, and any changes you need to make sho
 If there are actually people hoping to use this code, I will add more documentation support for both the program files, and potentially further split the files into function files for easier documentation.
 
 
+### The shoreline extraction routine
+
+The shoreline extraction routine is described in the supplementary material in Moodie et al.
+
+![demo image](./private/extract_routine.png "extraction routine demo")
+
+
 
 ## License
 
+This program is licensed under the MIT license, see [LICENSE.txt](./LICENSE.txt) for the full license.
 
 
-## Disclaimer and acknowledgments 
+
+## Disclaimer and acknowledgments
+
+This code was written by Andrew J. Moodie and Brandee Carlson as part of a National Science Foundation funded research project assessing the sustainability of anthropogenically influenced deltas.
+The research is supported by Grant No. 1427262 and an NSF Graduate Research Fellowship to A.J.M. under Grant No. 1450681.
+Any opinion, findings, and conclusions or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the National Science Foundation.
