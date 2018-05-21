@@ -48,20 +48,21 @@ A branch of the repository without the data is also available, for a reduced fil
 This version can be cloned with:
 
 ```
-git clone -b release https://git@github.com/amoodie/shoreline_extract.git
+git clone -b no_data https://git@github.com/amoodie/shoreline_extract.git
 ```
 
 
 ### File/folder structure
 
 A tree of the default branch, simplified for brevity, is produced below
+
 ```
 .
 ├── data/
-│   ├── LT41210341989028XXX02
-│   ├── LT51210341985329HAJ00
-│   ├── LT51210341992317HAJ00
-│   ├── LT51210341995357CLT00
+│   ├── LT41210341989028XXX02/
+│   ├── LT51210341985329HAJ00/
+│   ├── LT51210341992317HAJ00/
+│   ├── LT51210341995357CLT00/
 │   ├── empty.txt
 │   └── qinshuigou_channelline.csv
 ├── output/
