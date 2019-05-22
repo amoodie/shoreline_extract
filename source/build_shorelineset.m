@@ -118,7 +118,8 @@ function [sortidx, metadata_sort] = get_sortorder(meta, folders, countfolders, d
         % concatenate to build the present folder and metadata file info
         imagefolder = fullfile(directory, folders(i)); 
         imagemetafile = fullfile(imagefolder, strcat(folders(i), '_MTL.txt'));
-        fidmetadata = fopen(char(imagemetafile)); % fid of metadata file
+        [fidmetadata, message] = fopen(char(imagemetafile)); % fid of metadata file
+        if fidmetadata < 0; disp(message); end
         
         % process the file to extract the metadata
         [metadata{i, 1}] = get_metadata(meta,  fidmetadata, imagefolder);
@@ -261,7 +262,7 @@ function [meta] = get_metadata(meta, fidmetadata, imagefolder)
      [meta.res] = strip_from_meta(metadata, 'GRID_CELL_SIZE_REFLECTIVE', 'num');
 
     % what is the scene ID (name)
-    [meta.name] = strip_from_meta(metadata, 'LANDSAT_SCENE_ID', 'str');
+    [meta.name] = strip_from_meta(metadata, 'LANDSAT_PRODUCT_ID', 'str');
 
     % image folder path
     [meta.imagefolder] = imagefolder;
@@ -282,6 +283,7 @@ function [value] = strip_from_meta(metadata, keystring, valuetype)
     
     % find the index and grab that line
     idx = find(~cellfun(@isempty,strfind(metadata{1,1}, keystring)) == 1);
+    idx = idx(1);
     str = metadata{1,1}(idx);
     
     % split the string at the equals sign and strip quotes and whitespace
