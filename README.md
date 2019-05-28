@@ -12,7 +12,7 @@ Simplified demonstration version of the code used in Moodie et al. to make the s
 
 This code was written with Matlab 2017b on Ubuntu 16.04. 
 It has intentionally been written to be OS agnostic, but does depend on Matlab 2017 or newer.
-
+It has successfully been run on Matlab 2018b (latest tested version).
 
 
 ## Limitations
