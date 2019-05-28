@@ -283,17 +283,40 @@ function [value] = strip_from_meta(metadata, keystring, valuetype)
     
     % find the index and grab that line
     idx = find(~cellfun(@isempty,strfind(metadata{1,1}, keystring)) == 1);
-    idx = idx(1);
+    if length(idx) < 1
+        error('Error: no matching metadata entry identified for keystring "%s"', keystring) 
+    end
     str = metadata{1,1}(idx);
     
     % split the string at the equals sign and strip quotes and whitespace
-    splt = strsplit(char(str),'=');
-    noquotes = strrep(splt(2), '"', '');
-    nowhite = strtrim(noquotes{:});
-   
+    for i  = 1:length(idx)
+        splt = strsplit(char(str{i}),'=');
+        key_noquotes = strrep(splt(1), '"', '');
+        key_nowhite(i) = {strtrim(key_noquotes{:})};
+        val_noquotes = strrep(splt(2), '"', '');
+        val_nowhite(i) = {strtrim(val_noquotes{:})};
+    end
+    
+    if length(idx) > 1
+        exact_match = strcmp(key_nowhite, keystring);
+        if any(exact_match)
+            warning('more than one entry identified matching keystring "%s" and using the exact match', keystring)
+            nowhite = val_nowhite(exact_match);
+        else
+            warning('more than one entry identified matching keystring "%s" and no exact match found, using first match', keystring)
+            nowhite = val_nowhite(1);
+        end
+    else
+        nowhite = val_nowhite;
+    end
+    
+    if length(nowhite) > 1
+        error('Error: two values still returned for keystring, needs to be manually debugged (for keystring "%s")', keystring) 
+    end
+    
     % process to the desired type
     if strcmp(valuetype, 'str')    
-        value = nowhite;
+        value = nowhite{:};
     elseif strcmp(valuetype, 'num')
         value = str2double(nowhite);
     else
