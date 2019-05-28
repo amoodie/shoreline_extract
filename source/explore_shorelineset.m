@@ -2,7 +2,7 @@ function explore_shorelineset()
     %explore_shorelineset explores the shoreline data set
     %
     % authored by Andrew J. Moodie and Brandee Carlson
-    % 2015--2018
+    % 2015--2019
     % MIT License
 
     clear variables;

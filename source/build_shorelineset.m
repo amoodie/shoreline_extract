@@ -2,7 +2,7 @@ function [] = build_shorelineset()
     %build_shorelineset processes the images and builds a set of csv shorelines from the images
     %
     % authored by Andrew J. Moodie and Brandee Carlson
-    % 2015--2018
+    % 2015--2019
     % MIT License
 
     clear variables; 
@@ -16,11 +16,11 @@ function [] = build_shorelineset()
     %
     % do you want to make and save the processing image of the thresholding
     %     (setting to false will make code run much faster)
-    meta.make_thresh = true;
+    meta.make_thresh = false;
     %
     % do you want to make and save an RGB image too?
     %     (setting to false will make code run much faster)
-    meta.make_RGB = true;
+    meta.make_RGB = false;
     %
     % what are the coordinates for cropping to the delta extent
     meta.deltaULcoord = [633497, 4236964];
