@@ -33,8 +33,11 @@ function [] = build_shorelineset()
     % create the list of folders to loop through
     listing = dir(meta.directory); % all items in directory
     listing(ismember( {listing.name}, {'.', '..'})) = [];  % dont want . or ..
-    direcoriesBool = [listing.isdir]; % logical of directories only
-    folders = cellstr(  vertcat( listing(direcoriesBool).name )  ); % list of folder names only
+    directoriesBool = [listing.isdir]; % logical of directories only
+    if ~any(directoriesBool)
+        error('no files identified in the data directory "%s"', meta.directory)
+    end
+    folders = cellstr(  vertcat( listing(directoriesBool).name )  ); % list of folder names only
     countfolders = length(folders);
 
     % loop through all the folder first to generate some metadata for sorting
