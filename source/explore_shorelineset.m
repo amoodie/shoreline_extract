@@ -18,10 +18,8 @@ function explore_shorelineset()
 
     % load data
     [data] = load_data(meta.directory);
-%     [auto.data] = load_data('auto');
 
-%     T = load('./shorelines/deltaLLcoord.mat');
-%     deltaCROPLLcoord = T.deltaLLcoord; % I have no idea what this is for
+    % prepare delta apex
     deltaLLcoord = [611066, 4149751]; % this is Lijin, used for calculating the delta radius
     
     % prepare the channel centerline
