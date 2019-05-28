@@ -15,9 +15,11 @@ function [] = build_shorelineset()
     meta.directory = fullfile('..', 'data');
     %
     % do you want to make and save the processing image of the thresholding
+    %     (setting to false will make code run much faster)
     meta.make_thresh = true;
     %
     % do you want to make and save an RGB image too?
+    %     (setting to false will make code run much faster)
     meta.make_RGB = true;
     %
     % what are the coordinates for cropping to the delta extent
