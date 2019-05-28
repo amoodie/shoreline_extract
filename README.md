@@ -59,13 +59,14 @@ A tree of the default branch, simplified for brevity, is produced below
 ```
 .
 ├── data/
-│   ├── LT41210341989028XXX02/
-│   ├── LT51210341985329HAJ00/
-│   ├── LT51210341992317HAJ00/
-│   ├── LT51210341995357CLT00/
+│   ├── LT04_L1TP_121034_19890128_20170204_01_T1/
+│   ├── LT05_L1TP_121034_19851125_20170218_01_T1/
+│   ├── LT05_L1TP_121034_19921112_20170121_01_T1/
+│   ├── LT05_L1TP_121034_19951223_20170105_01_T1/
 │   ├── empty.txt
 │   └── qinshuigou_channelline.csv
 ├── output/
+|   ├── *.mat
 │   └── empty.txt
 ├── private/
 ├── source/
@@ -89,12 +90,12 @@ After running these scripts, the `output` folder will be populated with the shor
 
 
 The data used in developing the script are provided as part of this repository, but you can also obtain them (or others) for yourself from the Level 1 Landsat data at the [USGS Earth Explorer website](https://earthexplorer.usgs.gov/).
-There were four scenes used to make the images and plots in this readme:
+There were four scenes used to make the images and plots in this README:
 
-* LT51210341985329HAJ00
-* LT41210341989028XXX02
-* LT51210341992317HAJ00
-* LT51210341995357CLT00
+* `LT04_L1TP_121034_19890128_20170204_01_T1`
+* `LT05_L1TP_121034_19851125_20170218_01_T1`
+* `LT05_L1TP_121034_19921112_20170121_01_T1`
+* `LT05_L1TP_121034_19951223_20170105_01_T1`
 
 You can download these scenes explicitly, or any other scenes that fall into the `WRS_PATH = 121` and `WRS_ROW = 034` flight path from any time.
 
@@ -107,7 +108,7 @@ The `private` folder contains the images and movies used in this documentation.
 
 ## Running the program
 
-Once the data are properly organized into the `data` folder, you can open your Matlab GUI and navigate to and open `build_shorelineset.m`.
+Once the data are properly organized into the `data` folder, you can open your Matlab environment and navigate to and open `build_shorelineset.m`.
 See the parameter list at the top of the script, and make any modifications if necessary.
 Run the program.
 
@@ -121,7 +122,7 @@ This will produce a demonstration plot of the shoreline intersection routine and
 
 ## Documentation
 
-As of 05/09/2018, the only documentation to this program is this file.
+The only documentation to this program is this file.
 However, the code is pretty well commented, and any changes you need to make should be pretty easy.
 
 If there are actually people hoping to use this code, I will add more documentation support for both the program files, and potentially further split the files into function files for easier documentation.
